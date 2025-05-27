@@ -21,23 +21,23 @@ image::./media/Kokkidio_Logo.svg[]
 
 == Overview
 
-_Kokkidio_ is a header-only template library 
-designed to provide interoperability between the linear algebra library {Eigen} 
-and the performance portability framework {Kokkos}. 
-Its aim is to allow the easy-to-read, succinct source code of {Eigen} 
-to be compiled to fast machine code on all the platforms supported by {Kokkos}.  
+_Kokkidio_ is a header-only template library
+designed to provide interoperability between the linear algebra library {Eigen}
+and the performance portability framework {Kokkos}.
+Its aim is to allow the easy-to-read, succinct source code of {Eigen}
+to be compiled to fast machine code on all the platforms supported by {Kokkos}.
 
 
-// _Kokkidio_ 
+// _Kokkidio_
 // is built on top of both {kokkos} and {eigen}, and
 It
 consists of three interlocking elements:
 
-* An iteration range class (`ParallelRange`), 
-which allows threads to efficiently access their assigned elements, 
-* parallel dispatch functions (`parallel_for` and `parallel_reduce`) 
+* An iteration range class (`ParallelRange`),
+which allows threads to efficiently access their assigned elements,
+* parallel dispatch functions (`parallel_for` and `parallel_reduce`)
 compatible with functors taking `ParallelRange`, and
-* the <<_data_structures, data structures>> `ViewMap` and `DualViewMap`, 
+* the <<_data_structures, data structures>> `ViewMap` and `DualViewMap`,
 which combine an `Eigen::Map` and a `Kokkos::View`.
 
 It allows you to write code like this:
@@ -63,7 +63,7 @@ FloatArray y {size}, z {size};
 
 /* You can use Kokkos functions on (Dual)ViewMaps, because their members
  * "MapView::view", and
- * "DualViewMap::view_<target>()" 
+ * "DualViewMap::view_<target>()"
  * return a Kokkos::View */
 Kokkos::deep_copy( y.view_host(), 123 );
 
@@ -96,31 +96,31 @@ toc::[]
 
 
 While {eigen} offers an expressive syntax and extensive functionality
-for linear algebra operations, 
-its abstractions complicate the process of adapting it to 
+for linear algebra operations,
+its abstractions complicate the process of adapting it to
 parallel execution on GPUs.
 _Kokkidio_ was conceived as a way to streamline this process
 by providing a lightweight, header-only library
 that bridges the gap between Eigen and the portability framework {kokkos}.
 // It enables using Eigen operations and functions _within_
 // the explicit parallel structures of Kokkos.
-// 
+//
 // _Kokkidio_ was conceived as a way to streamline the process of
 // extending existing {eigen} code
 // to support GPU computation.
 // a wider range of compute hardware -- particularly GPUs.
 // The initial goal was to enable GPU execution for an explicit FVM solver
-// Its strengths, just like its limitations, are born 
+// Its strengths, just like its limitations, are born
 // To minimise redundancy
 
 
 === Why Eigen?
 
-{Eigen} is a linear algebra library, 
+{Eigen} is a linear algebra library,
 which allows writing any such operations in a readable, succinct manner,
 while compiling to highly optimised machine code.
-Instead of implementing matrix, vector, or coefficient-wise operations 
-using loops, the 'Eigen way' is to operate on whole data structures 
+Instead of implementing matrix, vector, or coefficient-wise operations
+using loops, the 'Eigen way' is to operate on whole data structures
 using their overloaded operators or member functions. Here's an example:
 
 // .Dot product in pure C++
@@ -180,34 +180,34 @@ z = a * x + y;
 
 In addition to the benefits of letting a well-tested library handle common operations,
 Eigen also performs extensive optimisations on the underlying loops.
-This notably includes explicit vectorisation for all common CPU vector extensions, 
+This notably includes explicit vectorisation for all common CPU vector extensions,
 such as the SSE and AVX families on x86, ARM NEON, and others.
 // mention expression templates?
 
 // Since version 3.4, Eigen functions can be called from CUDA/HIP kernels,
 // and its compatibility with SYCL is in a usable state since at least early 2024
 // and under active development.
-// However, neither its allocators for dynamically-sized data structures, 
-// nor SIMD parallelism (like vectorisation on CPUs) 
+// However, neither its allocators for dynamically-sized data structures,
+// nor SIMD parallelism (like vectorisation on CPUs)
 // are currently available on GPUs.
 // It does provide the {maplink}[`Eigen::Map`]
-// class, though, 
+// class, though,
 // with which other data structures can be treated like an Eigen object,
 // if they expose a data pointer and their memory layout and stride(s) are known.
 
 
 === Why Kokkos?
 
-{Kokkos} is a portability and parallelism framework, 
-which allows users to write code that compiles and runs 
+{Kokkos} is a portability and parallelism framework,
+which allows users to write code that compiles and runs
 on a wide range of hardware, especially both CPUs and GPUs.
 It provides data structures
 (https://kokkos.org/kokkos-core-wiki/ProgrammingGuide/View.html[`Kokkos::View`]),
-as well as functions for 
+as well as functions for
 https://kokkos.org/kokkos-core-wiki/ProgrammingGuide/ParallelDispatch.html[parallel dispatch],
 and
-// It 
-may be viewed as a common abstraction 
+// It
+may be viewed as a common abstraction
 for various programming models and backends, e.g.
 OpenMP, including target offloading, OpenACC, CUDA, HIP, and SYCL.
 Here's an example:
@@ -236,81 +236,81 @@ Kokkos::parallel_for( dim1, KOKKOS_LAMBDA(std::size_t i){
 While modern compilers already allow targeting multiple CPU architectures,
 due to ISAs functioning as a reliable standard (x86(-64), ARM, ...),
 GPU architectures and programming models are much less intercompatible.
-If you wrote your code using CUDA, 
-but want to run it on an Intel PonteVecchio GPU, 
+If you wrote your code using CUDA,
+but want to run it on an Intel PonteVecchio GPU,
 you will have to rewrite large parts of it.
 
 Using {Kokkos} for new projects allows you to avoid that type of effort.
-For existing projects, it allows a step-by-step migration, 
-because backend-specific code will still compile 
+For existing projects, it allows a step-by-step migration,
+because backend-specific code will still compile
 when using Kokkos on top of it.
 
-// GPU architectures don't just vary between vendors, 
+// GPU architectures don't just vary between vendors,
 // but often also between product generations and product lines of a single vendor.
-// // e.g. GCN being superseded by RDNA and CDNA, 
+// // e.g. GCN being superseded by RDNA and CDNA,
 // // or <NVIDIA>
 
 
-// Therefore, expressing a programming task 
+// Therefore, expressing a programming task
 // through Kokkos' data structures and parallel dispatch functions
 // allows it to be run on basically any hardware
 
 === The problems
 
-There exist a number of problems when trying to use Eigen's functionality on GPUs 
+There exist a number of problems when trying to use Eigen's functionality on GPUs
 (e.g. with Kokkos),
-// which are detailed below -- and 
+// which are detailed below -- and
 which _Kokkidio_ aims to address.
 
 . *Data structures* +
 Since version 3.4, Eigen functions can be called from CUDA/HIP kernels,
 and its compatibility with SYCL is in a usable state since at least early 2024
 and under active development.
-However, only fixed-size objects can be created on GPUs -- 
+However, only fixed-size objects can be created on GPUs --
 dynamically-sized data structures are only available on and from the host.
-There is the {maplink}[`Eigen::Map`] class, however, 
+There is the {maplink}[`Eigen::Map`] class, however,
 through which other data structures can be treated like Eigen objects,
 if they expose a data pointer and their memory layout and stride(s) are known.
 
 . *Loop abstraction and parallelism 1* +
-In the <<kokkos_ex,Kokkos example>> above, you can see 
-the functor passed to Kokkos' `parallel_for` 
-(the `KOKKOS_LAMBDA` in that case) 
+In the <<kokkos_ex,Kokkos example>> above, you can see
+the functor passed to Kokkos' `parallel_for`
+(the `KOKKOS_LAMBDA` in that case)
 containing the instructions for an *individual loop iteration*.
 By contrast, the *loop is fully abstracted* in the <<eigen_ex,Eigen example>>.
-There is no _user-facing_ loop iteration variable in an Eigen operation 
+There is no _user-facing_ loop iteration variable in an Eigen operation
 that could be used to parallelise operations.
 +
 Of course, that loop still exists, deep within the Eigen library.
-While it could potentially be parallelised there, 
-// sweeping changes to Eigen's interface would be necessary as well 
+While it could potentially be parallelised there,
+// sweeping changes to Eigen's interface would be necessary as well
 // to make this practical.
 the interface of Eigen is not set up to facilitate anything like this.
-Therefore, sweeping changes to the whole library would be necessary, 
+Therefore, sweeping changes to the whole library would be necessary,
 with all the compatibility and testing issues that brings.
-// Parallel execution would have to be conditional, 
+// Parallel execution would have to be conditional,
 // as a kernel dispatch would not make sense for every operation,
 // and to prevent accidental nesting.
 
 . *Parallelism 2: Chunk sizes, vectorisation, and readability* +
-// Furthermore, when 
+// Furthermore, when
 When
 parallelising an Eigen operation as a library user,
-the ideal strategy for assigning work to threads 
+the ideal strategy for assigning work to threads
 is rather different between CPUs and GPUs.
-On a GPU, the large number of relatively weak cores 
+On a GPU, the large number of relatively weak cores
 leads to many small units of work performing better.
-// a large number of small units of work perform better, 
-// while 
-By contrast, 
+// a large number of small units of work perform better,
+// while
+By contrast,
 on a CPU, fewer, larger, and contiguous chunks per thread are preferable,
-to allow for vectorised operations. 
+to allow for vectorised operations.
 +
-// Let's use a (slightly) more involved example, 
+// Let's use a (slightly) more involved example,
 // where an individual thread's operation is still done with Eigen:
 // Here's an example with Eigen, where columns of matrices are (dot-) multiplied:
 Here's an example to illustrate this difference.
-We're not using SAXPY, but instead multiply matrix columns, 
+We're not using SAXPY, but instead multiply matrix columns,
 so that individual threads still use Eigen functionality.
 +
 .Multiply matrix columns
@@ -329,7 +329,7 @@ double result; // let's sum up the results to not need another array
 /******************************************************************************/
 /* OPTION 1, better on GPUs */
 /******************************************************************************/
-/* Distribute individual column-multiplications, 
+/* Distribute individual column-multiplications,
  * as one might do on a GPU, if nCols >> nRows */
 result = 0;
 for (int i=0; i<nCols; ++i){
@@ -351,32 +351,32 @@ int nColsPerCore {nCols / nCores}; // not handling remainders
 for (int i=0; i<nCores; ++i){
 	int firstCol {i * nColsPerCore};
 	result += (
-		a.middleCols(firstCol, nColsPerCore).transpose() * 
+		a.middleCols(firstCol, nColsPerCore).transpose() *
 		b.middleCols(firstCol, nColsPerCore)
 	).trace(); // trace = sum of the diagonal
 }
 ----
 ====
 Not only do the loop bodies differ quite significantly,
-but Eigen's advantage of short and readable source code 
+but Eigen's advantage of short and readable source code
 is also somewhat diminished, when parallelising code in this fashion.
 
 
 === Approaching solutions
 
-_Kokkidio_ solves the first issue of Eigen's data structures 
-not being compatible with GPU programming models by 
+_Kokkidio_ solves the first issue of Eigen's data structures
+not being compatible with GPU programming models by
 wrapping a `Kokkos::View` in a class called `ViewMap`.
-It provides access to the contained `Kokkos::View`, 
-and additionally uses Eigen's {maplink}[`Map`] feature 
+It provides access to the contained `Kokkos::View`,
+and additionally uses Eigen's {maplink}[`Map`] feature
 to allow the contained data to be treated like an `Eigen` object --
-even on GPUs. 
-More detail is provided in the section 
+even on GPUs.
+More detail is provided in the section
 <<_data_structures>>.
 
 To address the issues regarding parallelism, vectorisation, and readability,
-_Kokkidio_ provides 
-an iteration range class 
+_Kokkidio_ provides
+an iteration range class
 called <<_parrange, `ParallelRange`>>
 and <<_parfor, parallel dispatch functions>> compatible with it.
 These are detailed in the <<_pardisp,next section>>.
@@ -386,19 +386,19 @@ These are detailed in the <<_pardisp,next section>>.
 == Parallel dispatch
 
 
-// an iteration range class, 
+// an iteration range class,
 // combined with parallel dispatch functions which use that class.
-// The class is called `ParallelRange` 
+// The class is called `ParallelRange`
 // and its behaviour is specialised depending on the execution target (CPU/GPU).
 // When applying a `ParallelRange` (i.e., its `operator()`) to a `ViewMap`,
-// the return object represents the data of that `ViewMap` 
-// associated with the calling thread: 
+// the return object represents the data of that `ViewMap`
+// associated with the calling thread:
 // an individual element or column on a GPU,
 // and a segment or block on a CPU.
 // See its <<_pardisp, dedicated section>> for more details.
 // This arrangement makes reading and writing parallel code much easier,
 // while also providing performance benefits on CPUs:
-// There, it allows for proper vectorisation, 
+// There, it allows for proper vectorisation,
 // thus speeding up many operations significantly.
 // On a GPU, it constitutes a zero-overhead abstraction instead.
 
@@ -408,32 +408,32 @@ These are detailed in the <<_pardisp,next section>>.
 === `ParallelRange`
 
 The class template `ParallelRange` fulfils two functions:
-Firstly, 
+Firstly,
 given some total number or range of items to be processed,
 it contains the index or index range associated with the executing thread,
 and secondly, when applied to an Eigen or `(Dual)ViewMap` object,
 returns the data at that index or index range as an `Eigen::Block` expression.
 
-Its template parameter `target` can take either of 
-the two values of the `Target` enumeration, 
-// which can be either 
+Its template parameter `target` can take either of
+the two values of the `Target` enumeration,
+// which can be either
 `host` (CPU) or `device` (e.g., GPU):
 
-* When `target==device`, then `ParallelRange` stores a single index. 
-Applying it to an Eigen or `(Dual)ViewMap` object 
+* When `target==device`, then `ParallelRange` stores a single index.
+Applying it to an Eigen or `(Dual)ViewMap` object
 returns either a single element, if the object is one-dimensional,
 or a column expression, if the object is two-dimensional.
-By default, 
+By default,
 https://eigen.tuxfamily.org/dox/group__TopicStorageOrders.html[Eigen objects are column-major],
 which is the reason behind this choice.
 
-* When `target==host`, then `ParallelRange` stores 
+* When `target==host`, then `ParallelRange` stores
 a starting index and number of elements.
 Applying it to an Eigen object or `(Dual)ViewMap`
-then returns a contiguous block of elements, 
+then returns a contiguous block of elements,
 using `Eigen::segment` on 1D objects, and `Eigen::middleCols` on 2D objects.
 
-(Ranges of) rows instead of columns are also available, 
+(Ranges of) rows instead of columns are also available,
 but require the explicit use of a member function (`ParallelRange::rowRange`),
 rather than `ParallelRange::operator()`.
 
@@ -466,9 +466,9 @@ public:
 	KOKKOS_FUNCTION ParallelRange() = default;
 
 	/* ParallelRange can be instantiated with:
-	 * - an integer, 
+	 * - an integer,
 	 * - a Kokkidio::IndexRange, or
-	 * - a Kokkos::RangePolicy. 
+	 * - a Kokkos::RangePolicy.
 	 */
 	template<typename Policy>
 	KOKKOS_FUNCTION ParallelRange( const Policy& );
@@ -525,8 +525,8 @@ _Kokkidio_ provides drop-in replacements for Kokkos' parallel dispatch functions
 * `parallel_for`, for general tasks, and
 * `parallel_reduce`, for reductions.
 
-The main difference to their Kokkos equivalents is, 
-that they allow passing a functor which takes a `ParallelRange` as its 
+The main difference to their Kokkos equivalents is,
+that they allow passing a functor which takes a `ParallelRange` as its
 (first) argument, e.g.:
 
 ----
@@ -535,29 +535,29 @@ parallel_for(someSizeOrPolicy, KOKKOS_LAMBDA(ParallelRange<target> rng){
 });
 ----
 
-On `device` (e.g., GPU), this chains to `Kokkos::parallel_[for|reduce]`, 
+On `device` (e.g., GPU), this chains to `Kokkos::parallel_[for|reduce]`,
 and constructs a `ParallelRange<device>` from a single element index.
-On `host` (CPU), this calls a _Kokkidio_-specific function 
+On `host` (CPU), this calls a _Kokkidio_-specific function
 emulating OpenMP-logic for distributing work items evenly to threads.
 The index range of work items consists of a start index and a number of items,
-// and is expressed as the <<_indexrange, `IndexRange` class>>. 
-// From this, a `ParallelRange<host>` is created, which, 
+// and is expressed as the <<_indexrange, `IndexRange` class>>.
+// From this, a `ParallelRange<host>` is created, which,
 from which a `ParallelRange<host>` is created. This,
 when applied to an Eigen or `(Dual)ViewMap` object,
 returns a contiguous `Eigen::Block` of data, corresponding to the index range.
 
-If a functor is provided 
+If a functor is provided
 that does not take a `ParallelRange` as its first parameter,
-_Kokkidio_'s parallel dispatch functions 
-simply forward to their Kokkos equivalent 
+_Kokkidio_'s parallel dispatch functions
+simply forward to their Kokkos equivalent
 (except for <<_syclcpu>>).
 
 The first parameter (`someSizeOrPolicy` in the example above)
-can be an integer number, 
-a `Kokkos::RangePolicy`, 
+can be an integer number,
+a `Kokkos::RangePolicy`,
 or a <<_indexrange, `Kokkidio::IndexRange`>>
 
-A variant of these is `parallel_[for|reduce]_chunks`. 
+A variant of these is `parallel_[for|reduce]_chunks`.
 See section <<_chunkbuf>> for details.
 
 ==== Examples
@@ -628,7 +628,7 @@ parallel_reduce(
 [id=_chunkbuf]
 === (Chunk) buffers
 
-When intermediate results are needed in a computational loop, 
+When intermediate results are needed in a computational loop,
 their implementation in (scalar) C++ is straightforward,
 as one would simply define a stack variable:
 
@@ -641,7 +641,7 @@ for (double& a : arr){
 }
 ----
 
-However, Eigen offers no obvious way to define intermediate results 
+However, Eigen offers no obvious way to define intermediate results
 as _stack_ variables, as the loop is abstracted.
 Instead, we could use an array buffer:
 
@@ -655,32 +655,32 @@ This may not be ideal,
 as a whole array is allocated, even though only a couple of values are needed,
 and additional memory accesses are introduced.
 
-_Kokkidio_ offers a `ChunkBuffer` structure, 
+_Kokkidio_ offers a `ChunkBuffer` structure,
 which alleviates this issue within a parallel dispatch.
-The `ChunkBuffer` requires an Eigen type (`ColType`) 
+The `ChunkBuffer` requires an Eigen type (`ColType`)
 as its first template parameter.
-Here, users provide the fixed-size type closest to what they'd need 
+Here, users provide the fixed-size type closest to what they'd need
 in a single loop iteration,
-e.g., for the example above, 
+e.g., for the example above,
 an `Eigen::Array<double, 1, 1>` (a `double` array with a single element).
-This allows users to define 
+This allows users to define
 whether they require `Eigen::Array` or `Eigen::Matrix` behaviour.
 
 The second template parameter is the `Target` enumeration.
-On `host`, a `ChunkBuffer` contains one array per thread 
-(using `omp_get_max_threads`), 
-with the same number of rows as `ColType`, 
-and the chunk size of the parallel loop as the number of columns. 
-A reasonable default is chosen for the chunk size, 
+On `host`, a `ChunkBuffer` contains one array per thread
+(using `omp_get_max_threads`),
+with the same number of rows as `ColType`,
+and the chunk size of the parallel loop as the number of columns.
+A reasonable default is chosen for the chunk size,
 but it can also optionally be specified via a `Kokkos::RangePolicy`.
 This improves the likelihood of the buffer data remaining in cache.
 
 
-On `device`, a `ChunkBuffer` contains no data. 
-Instead, it only wraps `ColType`. 
-When accessing this buffer inside a parallel dispatch, 
-the type gets instantiated -- 
-and because fixed-size types are allocated on the stack, 
+On `device`, a `ChunkBuffer` contains no data.
+Instead, it only wraps `ColType`.
+When accessing this buffer inside a parallel dispatch,
+the type gets instantiated --
+and because fixed-size types are allocated on the stack,
 this is equivalent to defining stack variables in a C-style loop.
 
 Usage:
@@ -724,46 +724,46 @@ See <<_eigenrange, `EigenRange`>> for the data type of the `chunk` parameter.
 
 The core of the `ViewMap` class (see link:./include/Kokkidio/ViewMap.hpp[file])
 are the two member functions `map()` and `view()`,
-which return an `Eigen::Map`, and a `Kokkos::View` respectively, 
+which return an `Eigen::Map`, and a `Kokkos::View` respectively,
 and thus allow it to be used in either library's functions.
 
 `ViewMap` takes two template parameters:
 
-. `EigenType`: The `Eigen` class to be used as the map type, 
-e.g. `Eigen::MatrixXd` or `Eigen::Array3i`. 
-The return type of `map()` behaves the same way as this type. 
-Only dense types are currently supported. 
-. A `Target` enumeration value, which can be either `host` or `device`. 
-This parameter is optional. 
+. `EigenType`: The `Eigen` class to be used as the map type,
+e.g. `Eigen::MatrixXd` or `Eigen::Array3i`.
+The return type of `map()` behaves the same way as this type.
+Only dense types are currently supported.
+. A `Target` enumeration value, which can be either `host` or `device`.
+This parameter is optional.
 Its default value matches `Kokkos::DefaultExecutionSpace`.
 
-`ViewMap` can be instantiated either using an existing `Eigen` object, 
-or using the same size parameters as you would for the `Eigen` type. 
+`ViewMap` can be instantiated either using an existing `Eigen` object,
+or using the same size parameters as you would for the `Eigen` type.
 Here's what happens when you create a `ViewMap`:
 
-. With an existing `Eigen` object: 
+. With an existing `Eigen` object:
 
 .. Instantiation on `Target::host`:
-No allocation is performed. 
-An unmanaged `Kokkos::View` is created, 
+No allocation is performed.
+An unmanaged `Kokkos::View` is created,
 using the existing object's data pointer and sizes.
 
 .. Instantiation on `Target::device`:
-the `Eigen` object's sizes are used to create a matching managed `Kokkos::View` 
+the `Eigen` object's sizes are used to create a matching managed `Kokkos::View`
 on the device.
 
-. With size parameters: 
+. With size parameters:
 A managed `Kokkos::View` is created using these sizes on `Target`.
 The same size parameters are allowed as for the respective `Eigen` type.
 This means, creating vector types (1D) requires only a single size parameter,
 and fixed size types can be created without them.
 
-In all of the above cases, the data pointers of `view()` and `map()` 
-contain the same address. 
-Furthermore, when instantiating a `ViewMap` with 
+In all of the above cases, the data pointers of `view()` and `map()`
+contain the same address.
+Furthermore, when instantiating a `ViewMap` with
 a non-const, owning `Eigen` object (i.e. not itself an `Eigen::Map`),
-a non-owning pointer to the object is stored 
-to allow resizing both the `Kokkos::View` and the `Eigen` object 
+a non-owning pointer to the object is stored
+to allow resizing both the `Kokkos::View` and the `Eigen` object
 via `ViewMap::resize()`.
 
 ==== Examples
@@ -791,8 +791,8 @@ auto mv2 = viewMap(eigenArray);
  * while deducing Eigen type */
 auto mv3 = viewMap<Target::host>(eigenArray);
 
-/* Create ViewMap using size parameters. 
- * ArrayXXd is dynamically sized in both dimensions, 
+/* Create ViewMap using size parameters.
+ * ArrayXXd is dynamically sized in both dimensions,
  * so two parameters are required */
 ViewMap<Eigen::ArrayXXd> mv4 {nRows, nCols};
 
@@ -914,20 +914,20 @@ ViewMap<EigenType, target> viewMap(Index rows, Index cols);
 === `DualViewMap`
 
 `DualViewMap` (see link:./include/Kokkidio/DualViewMap.hpp[file])
-is designed to facilitate easy data exchange between `host` 
-and the compute `Target`. 
+is designed to facilitate easy data exchange between `host`
+and the compute `Target`.
 To this end, it provides the member functions
-`copyToTarget()` 
-and 
+`copyToTarget()`
+and
 `copyToHost()`.
 
 
-It takes the same template parameters as <<_viewmap,`ViewMap`>>, 
+It takes the same template parameters as <<_viewmap,`ViewMap`>>,
 i.e. an `Eigen` type, and a `Target` value.
-While a `ViewMap` only exists on _either_ `host` or `device`, 
-`DualViewMap` always consists of _two_ ``ViewMap``s, 
-of which one is located on `host`, 
-and the other on the specified `Target`. 
+While a `ViewMap` only exists on _either_ `host` or `device`,
+`DualViewMap` always consists of _two_ ``ViewMap``s,
+of which one is located on `host`,
+and the other on the specified `Target`.
 If the `Target` is also `host`, then the two views are identical,
 and `copyTo...()` operations are correspondingly skipped.
 
@@ -935,7 +935,7 @@ To access the ``ViewMap``s, it provides the member functions
 `get_host()`
 and
 `get_target()`,
-as well as shortcuts to their ``map()``/``view()`` member functions 
+as well as shortcuts to their ``map()``/``view()`` member functions
 in the form of
 ``map_host()``/``map_target()`` and ``view_host()``/``view_target()``.
 
@@ -956,14 +956,14 @@ int nRows {10}, nCols {20};
 /* existing Eigen object */
 Eigen::ArrayXXd eigenArray {nRows, nCols};
 /* By default, when initialising with an Eigen object,
- * the object's data is copied to the target. 
+ * the object's data is copied to the target.
  * This behaviour be changed with an optional parameter: DontCopyToTarget */
 DualViewMap d1 {eigenArray};
 auto d2 = dualViewMap(eigenArray, DontCopyToTarget);
-/* Otherwise, a DualViewMap can be created in exactly the same ways as a 
+/* Otherwise, a DualViewMap can be created in exactly the same ways as a
  * ViewMap, so please refer to ViewMap.cpp for more examples. */
 
-/* with DualViewMap, you can set your values on host, 
+/* with DualViewMap, you can set your values on host,
  * then copy them to the target: */
 d2.map_host() = 123;
 d2.copyToTarget();
@@ -975,7 +975,7 @@ auto print = [&](std::string_view descriptor){
 };
 print("before");
 
-/* Now you can do some computations on the target, 
+/* Now you can do some computations on the target,
  * then copy the values back */
 parallel_for(d2.cols(), KOKKOS_LAMBDA(ParallelRange<> rng){
 	rng(d2) += 1;
@@ -1108,16 +1108,16 @@ DualViewMap<EigenType, target> dualViewMap(Index rows, Index cols);
 :eigendoc_block: https://eigen.tuxfamily.org/dox-devel/group__TutorialBlockOperations.html
 :kokkosdoc_rangepol: https://kokkos.org/kokkos-core-wiki/API/core/policies/RangePolicy.html
 
-`IndexRange` is a small, but expressive helper class 
+`IndexRange` is a small, but expressive helper class
 intended to unify the different ways
 in which ranges of discrete items are described in Eigen and Kokkos:
-Eigen's {eigendoc_block}[block operations] 
+Eigen's {eigendoc_block}[block operations]
 use the first index and the number of items,
 while Kokkos (e.g. {kokkosdoc_rangepol}[`RangePolicy`]) describe ranges
 using `begin` and `end` indices.
 
-Use it to define the work range (first argument) 
-in a <<_parfor, parallel dispatch>>, 
+Use it to define the work range (first argument)
+in a <<_parfor, parallel dispatch>>,
 if your work range does not start at zero.
 
 .Expand `IndexRange` synopsis
@@ -1180,20 +1180,20 @@ public:
 [id=_eigenrange]
 === `EigenRange`
 
-`EigenRange` contains a data member, whose type is 
+`EigenRange` contains a data member, whose type is
 <<_indexrange,`IndexRange`>> on `host`, and a single `Index` on `device`.
 It
 provides functions for getting an `Eigen::Block` expression
 from an Eigen or `(Dual)ViewMap` object,
-whose extents conform to the data member, e.g., 
-a contiguous range of rows/columns on `host`, 
+whose extents conform to the data member, e.g.,
+a contiguous range of rows/columns on `host`,
 or a single row/column on `device`.
 It is the base class of <<_parrange, `ParallelRange`>>,
-as well as 
-the functor parameter type in `parallel_for_chunks` 
-and `ParallelRange::for_each_chunk` 
+as well as
+the functor parameter type in `parallel_for_chunks`
+and `ParallelRange::for_each_chunk`
 (see <<_chunkbuf>>).
-// and 
+// and
 // the return type of `ParallelRange::make_chunk`.
 
 .Expand `EigenRange` synopsis
@@ -1244,17 +1244,17 @@ public:
 :buildsh: link:./build.sh[build.sh]
 :envnodes: link:./env/nodes[env/nodes]
 
-The multi-backend nature of Kokkos and, by extension, _Kokkidio_, 
+The multi-backend nature of Kokkos and, by extension, _Kokkidio_,
 makes the process of configuring and building rather involved.
 To help with this, the build script `{buildsh}` is included.
-// 
-// Instead, on first run, `{buildsh}` 
+//
+// Instead, on first run, `{buildsh}`
 On first run, it
 will create a file in `{envnodes}`,
-whose name is your machine's _node name_, i.e., the output of `uname -n`, 
+whose name is your machine's _node name_, i.e., the output of `uname -n`,
 plus the ending `.sh`.
-On subsequent runs, this _node file_ is read by `{buildsh}`. 
-In the node file, the 
+On subsequent runs, this _node file_ is read by `{buildsh}`.
+In the node file, the
 `device` architecture and programming model ("backend") must be specified
 by the user:
 
@@ -1262,7 +1262,7 @@ by the user:
 .Expand node file example
 [%collapsible]
 ====
-See https://kokkos.org/kokkos-core-wiki/keywords.html#architectures
+See https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#keywords-arch
 for possible values of `Kokkos_ARCH`.
 [,bash]
 ----
@@ -1280,7 +1280,7 @@ Kokkos_ARCH=Kokkos_ARCH_...
 
 
 ###########
-# Optional: 
+# Optional:
 ###########
 
 # You can set paths to Kokkos and Eigen. The script can download them for you,
@@ -1302,18 +1302,18 @@ Kokkos_INST="$Kokkos_SRC/install"
 ----
 ====
 
-:kokkoscomp: https://kokkos.org/kokkos-core-wiki/requirements.html#compiler-versions
+:kokkoscomp: https://kokkos.org/kokkos-core-wiki/get-started/requirements.html#compiler-versions
 
 You need a compiler that matches the chosen backend. See
 {kokkoscomp}[Kokkos: compiler versions] for details.
 
-The _node file_ approach was chosen to accomodate HPC systems, 
-where code is often run on a different machine 
+The _node file_ approach was chosen to accomodate HPC systems,
+where code is often run on a different machine
 to where it was configured/compiled, thus making autodetection unreliable.
-// the machine on which code is configured and compiled is often not the one 
+// the machine on which code is configured and compiled is often not the one
 // where it is run. Therefore, we chose not to rely on autodetection.
 To allow for the same node file to be used across multiple machines,
-e.g., login/compute nodes, you can define conditions/patterns in 
+e.g., login/compute nodes, you can define conditions/patterns in
 link:./env/node_patterns.sh[env/node_patterns.sh], e.g.
 
 [,bash]
@@ -1328,8 +1328,8 @@ e.g. loading modules or setting a specific compiler,
 that can be done in the node file as well.
 
 
-After setting up the node file, 
-run `./build.sh -h` to see the available options. 
+After setting up the node file,
+run `./build.sh -h` to see the available options.
 To download, compile, and install all components, you may use
 `./build.sh -cdi all`.
 
@@ -1339,12 +1339,12 @@ To download, compile, and install all components, you may use
 
 This section assumes that you already have installed Kokkos and Eigen.
 _Kokkidio_ needs to be able to find their respective CMake packages.
-If they cannot be found automatically, 
-you can provide the environment or CMake variables 
-`Kokkos_ROOT`, and `Eigen_ROOT` or `Eigen3_ROOT`. 
+If they cannot be found automatically,
+you can provide the environment or CMake variables
+`Kokkos_ROOT`, and `Eigen_ROOT` or `Eigen3_ROOT`.
 See {cmake_find_package}[CMake's `find_package` doc] for details on these paths.
 
-_Kokkidio_ follows the general way of configuring and installing 
+_Kokkidio_ follows the general way of configuring and installing
 a CMake project, so you could use build commands such as this:
 
 [,shell]
@@ -1358,7 +1358,7 @@ cmake \
 cmake --install ./build
 ----
 
-To build the examples (for tests, change `examples` to `tests`), 
+To build the examples (for tests, change `examples` to `tests`),
 you can then use
 
 [,shell]
@@ -1378,9 +1378,9 @@ _Kokkidio_ creates a CMake configuration file, so that it can be found with
 find_package(Kokkidio)
 ----
 
-If you didn't install _Kokkidio_ in a standard directory, 
+If you didn't install _Kokkidio_ in a standard directory,
 then you need to provide the CMake or environment variable `Kokkidio_ROOT`.
-It should point to the installation directory, 
+It should point to the installation directory,
 i.e. the one containing the directories `include` and `lib`.
 
 Due to some trickery that _Kokkidio_ has to apply to source files,
@@ -1397,7 +1397,7 @@ find_package(Kokkidio REQUIRED)
 
 add_executable(myTarget "")
 
-target_sources(myTarget PRIVATE 
+target_sources(myTarget PRIVATE
 	myFile1.cpp
 	myFile2.cpp
 )
@@ -1408,7 +1408,7 @@ kokkidio_configure_target(myTarget)
 
 For reasons detailed in <<_setcpu>>, we recommend setting up separate
 CPU and device code files. These can `#include` the same unified code file,
-as detailed in that section. Then, you can declare CPU files in CMake 
+as detailed in that section. Then, you can declare CPU files in CMake
 using _Kokkidio_'s function `set_is_cpu`, e.g.:
 [,cmake]
 ----
@@ -1418,7 +1418,7 @@ set_is_cpu(myFile1.cpp)
 == Notes
 
 === Building Kokkos for _Kokkidio_
-To achieve CPU parallelism with _Kokkidio_, 
+To achieve CPU parallelism with _Kokkidio_,
 Kokkos should always be built with the OpenMP backend enabled, i.e.
 `KOKKOS_ENABLE_OPENMP=ON`.
 
@@ -1428,7 +1428,7 @@ Kokkos should always be built with the OpenMP backend enabled, i.e.
 
 By default, Eigen disables vectorisation, when `\\__CUDACC__` is defined,
 i.e., when `nvcc` is used as the compiler for non-`.cu`-files.
-The single-source approach of Kokkos aims to 
+The single-source approach of Kokkos aims to
 eliminate the need for backend-specific files,
 thus combining Eigen and Kokkos lets this issue emerge.
 // so this issue must arise when combining Eigen and Kokkos, like _Kokkidio_ does.
@@ -1438,12 +1438,12 @@ and then defining `EIGEN_NO_CUDA` for the CPU unit.
 For convenience, the CMake function `set_is_cpu` is provided for this purpose.
 Here's how to do this in practice:
 
-* Put your source code into some file, 
-and don't specify it as a source file in CMake. 
-We recommend the file ending `.in` for this. 
+* Put your source code into some file,
+and don't specify it as a source file in CMake.
+We recommend the file ending `.in` for this.
 Let's call it `source.in`
 
-* Create two additional files, one each for host and device compilation, 
+* Create two additional files, one each for host and device compilation,
 respectively. Let's call these `source_host.cpp` and `source_device.cpp`.
 Add these files to your CMake target, and add the line
 +
@@ -1454,8 +1454,8 @@ set_is_cpu(source_host.cpp)
 
 * `#include` the source file (`source.in`) in both of these files.
 
-* optionally, you can write your functions as templates of the 
-`Target` parameter of all _Kokkidio_ classes, 
+* optionally, you can write your functions as templates of the
+`Target` parameter of all _Kokkidio_ classes,
 and explicitly instantiate them in those files.
 
 
@@ -1518,28 +1518,28 @@ kokkidio_configure_target(myTarget)
 [id=_syclcpu]
 === CPU execution with SYCL
 
-SYCL, at least in its oneAPI flavour, 
+SYCL, at least in its oneAPI flavour,
 does not support parallel host execution on any non-Intel CPU.
-Therefore, _Kokkidio_ defaults to redirecting `parallel_for` calls 
-on `Target::host` to OpenMP. 
+Therefore, _Kokkidio_ defaults to redirecting `parallel_for` calls
+on `Target::host` to OpenMP.
 This behaviour is controlled through the preprocessor symbol
-`KOKKIDIO_SYCL_DISABLE_ON_HOST`. 
+`KOKKIDIO_SYCL_DISABLE_ON_HOST`.
 
 === Name and Logo
 
-The name _Kokkidio_ is based on the assumptions that 
+The name _Kokkidio_ is based on the assumptions that
 
-. {Kokkos} refers to the Greek *Κόκκος* (engl.: *grain*, though possibly a play on *kernel*), and that 
+. {Kokkos} refers to the Greek *Κόκκος* (engl.: *grain*, though possibly a play on *kernel*), and that
 . {Eigen} refers to eigenvalues and eigenvectors.
 
-The latter are _ιδιοτιμή_ (idiotimí) and _ιδιοδιάνυσμα_ (idiodiánysma) in Greek, 
+The latter are _ιδιοτιμή_ (idiotimí) and _ιδιοδιάνυσμα_ (idiodiánysma) in Greek,
 from which the prefix _ιδιο_ (idio) was taken
-(engl.: _same_, though it could also be from _ίδιος_ = own, or self, 
-which is the meaning of _eigen_ in German). 
-_κοκκίδιο_ (kokkídio) could be seen as a https://en.wikipedia.org/wiki/Portmanteau[portmanteau] of _Kokkos_ and _idio_, 
+(engl.: _same_, though it could also be from _ίδιος_ = own, or self,
+which is the meaning of _eigen_ in German).
+_κοκκίδιο_ (kokkídio) could be seen as a https://en.wikipedia.org/wiki/Portmanteau[portmanteau] of _Kokkos_ and _idio_,
 but is in fact the Greek word for _granule_, so not far off _Kokkos_ itself.
 
-The logo is a stretched/sheared map of a recolouration of the https://kokkos.org/img/kokkos-logo.png[Kokkos logo], 
+The logo is a stretched/sheared map of a recolouration of the https://kokkos.org/img/kokkos-logo.png[Kokkos logo],
 with the eigenvectors of that mapping drawn as arrows.
 
 == Licence
