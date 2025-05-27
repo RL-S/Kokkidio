@@ -1,5 +1,5 @@
 add_executable( norm "" )
-
+target_link_libraries( norm PRIVATE kokkidio )
 target_sources( norm PRIVATE
 	main.cpp
 	norm_cpu.cpp
@@ -31,3 +31,4 @@ if(NOT KOKKIDIO_CPU_ONLY)
 endif()
 
 conf(norm)
+add_test(NAME norm COMMAND norm)

@@ -1,7 +1,9 @@
 # kokkidio-config.cmake - package configuration file
 
 get_filename_component(PROJ_CONF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include(${PROJ_CONF_DIR}/kokkidio.cmake)
+if ( EXISTS ${PROJ_CONF_DIR}/kokkidio.cmake )
+    include(${PROJ_CONF_DIR}/kokkidio.cmake)
+endif()
 
 include("${PROJ_CONF_DIR}/include_conf.cmake")
 

@@ -1,0 +1,59 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  config:
+    install_tree:
+      padded_length: 128
+  packages:
+    llvm:
+      externals:
+      - spec: llvm@14.0.0+clang~lld~lldb
+        prefix: /usr
+        extra_attributes:
+          compilers:
+            c: /usr/bin/clang-14
+            cxx: /usr/bin/clang++-14
+          flags: {}
+          environment: {}
+          extra_rpaths: []
+      - spec: llvm@18.0.0+clang~lld~lldb
+        prefix: /usr
+        extra_attributes:
+          compilers:
+            c: /usr/bin/clang-18
+            cxx: /usr/bin/clang++-18
+          flags: {}
+          environment: {}
+          extra_rpaths: []          
+    gcc:
+      externals:
+      - spec: gcc@14.0.0 languages:='c,c++,fortran'
+        prefix: /usr
+        extra_attributes:
+          compilers:
+            c: /usr/bin/gcc-14
+            cxx: /usr/bin/g++-14
+            fortran: /usr/bin/gfortran-14
+          flags: {}
+          environment: {}
+          extra_rpaths: []
+    all:
+      compiler: ['gcc@14:', 'clang@14:18']
+      require: ['target=x86_64_v3']
+    mpi:
+      require: ['openmpi@:4 fabrics=auto']
+  definitions:
+  - compilers: ['gcc@14:']
+  - packages: [kokkos+openmp, eigen,cmake]
+  specs:
+  - $compilers
+  - matrix:
+    - [$packages]
+    - [$%compilers]
+  view: true
+  concretizer:
+    unify: when_possible
+  mirrors:
+    numpex-buildcache: oci://ghcr.io/numpex/spack-buildcache

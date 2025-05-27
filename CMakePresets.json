@@ -1,0 +1,83 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+
+        {
+            "name": "default",
+            "displayName": "Default Config",
+            "description": "Default config",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/default",
+            "inherits": "cpp20",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_INSTALL_PREFIX" : "${sourceDir}/build/default/install/",
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "vendor": {
+                "example.com/ExampleIDE/1.0": {
+                    "autoFormat": true
+                }
+            }
+        },
+        {
+            "name": "cpp20",
+            "displayName": "C++ Standard",
+            "description": "C++ Standard",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "20"
+            }
+        },
+        {
+            "name": "cpp23",
+            "displayName": "C++ Standard",
+            "description": "C++ Standard",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "23"
+            }
+        },
+        {
+            "name": "cpp17",
+            "displayName": "C++ Standard",
+            "description": "C++ Standard",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "17"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+            "jobs": 10
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "ignore",
+                "stopOnFailure": true
+            },
+            "environment": {
+                "OMP_PROC_BIND": "true"
+            }
+        }
+    ],
+    "vendor": {
+        "example.com/ExampleIDE/1.0": {
+            "autoFormat": false
+        }
+    }
+}

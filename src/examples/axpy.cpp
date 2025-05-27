@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 template<typename Real, typename ViewMapType>
 void printFirstN(

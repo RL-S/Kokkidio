@@ -16,7 +16,7 @@ install(
 )
 
 add_library(kokkidio INTERFACE)
-
+add_library(Kokkidio::kokkidio ALIAS kokkidio)
 # Eigen and Kokkos are what we aim to combine
 target_link_libraries( kokkidio INTERFACE
 	Eigen3::Eigen
@@ -24,8 +24,8 @@ target_link_libraries( kokkidio INTERFACE
 )
 
 target_include_directories(kokkidio INTERFACE
-	$<BUILD_INTERFACE:${Kokkidio_SOURCE_DIR}/include> # for headers when building
-	$<BUILD_INTERFACE:${Kokkidio_SOURCE_DIR}/lib> # for headers when building
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> # for headers when building
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib> # for headers when building
 	$<INSTALL_INTERFACE:${KOKKIDIO_INST_HEADER_DIR}>
 	$<INSTALL_INTERFACE:${KOKKIDIO_INST_LIB_DIR}>
 )

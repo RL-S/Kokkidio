@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
 project(Kokkidio_bench)
 
-find_package(Kokkidio 1.0 REQUIRED)
+if ( ${PROJECT_SOURCE_DIR} STREQUAL  ${CMAKE_SOURCE_DIR})
+	find_package(Kokkidio 1.0 REQUIRED)
+endif()
+
 message(STATUS "Kokkidio_DIR: ${Kokkidio_DIR}")
 
 message(STATUS "Using CXX compiler: ${CMAKE_CXX_COMPILER}")
@@ -27,10 +30,10 @@ macro(conf TARGET_NAME)
 endmacro()
 
 include_directories(
-	"${CMAKE_SOURCE_DIR}/include"
-	"${CMAKE_SOURCE_DIR}/../../lib"
+	"${PROJECT_SOURCE_DIR}/include"
+	#"${CMAKE_SOURCE_DIR}/../../lib"
 )
-
+enable_testing()
 add_subdirectory(dotProduct)
 add_subdirectory(friction)
 # add_subdirectory(redux)

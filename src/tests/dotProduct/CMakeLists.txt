@@ -1,5 +1,5 @@
 add_executable( dotProduct "" )
-
+target_link_libraries( dotProduct PRIVATE kokkidio )
 target_sources( dotProduct PRIVATE
 	main.cpp
 	dotProduct_cpu.cpp
@@ -37,4 +37,5 @@ endif()
 # endif()
 
 conf(dotProduct)
+add_test(NAME dotProduct COMMAND dotProduct)
 

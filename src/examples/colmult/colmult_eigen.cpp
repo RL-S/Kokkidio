@@ -2,7 +2,7 @@
 #include <iostream>
 #include <chrono>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 struct Timer {
 	using clk = std::chrono::high_resolution_clock;

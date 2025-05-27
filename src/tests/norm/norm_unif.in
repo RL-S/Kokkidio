@@ -1,7 +1,7 @@
 #include "norm.hpp"
 #include <Kokkidio.hpp>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 #ifndef KOKKIDIO_NORM_TARGET
 #define KOKKIDIO_NORM_TARGET Target::device

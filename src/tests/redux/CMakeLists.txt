@@ -1,5 +1,5 @@
 add_executable( redux "" )
-
+target_link_libraries( redux PRIVATE kokkidio )
 target_sources( redux PRIVATE
 	main.cpp
 	sum_run.cpp
@@ -36,3 +36,4 @@ endif()
 # endif()
 
 conf(redux)
+add_test(NAME redux COMMAND redux)

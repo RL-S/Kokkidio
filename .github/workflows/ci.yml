@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      chosen-runner:
+        description: 'Choose the runner to use for the workflow'
+        required: true
+        type: choice
+        options:
+        - "self-ubuntu-24.04"
+        - "ubuntu-24.04"
+        - "none"
+        default: "none"
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-runner:
+    runs-on: ubuntu-latest
+    outputs:
+      runner: ${{ steps.check.outputs.runner }}
+    env: 
+      GH_TOKEN: ${{ secrets.TOKEN_RUNNER }}
+    steps:
+      - name: Check for self-ubuntu-24.04 runner at repository level
+        id: check
+        run: |
+          runner="ubuntu-24.04"
+          runners=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /orgs/${{ github.repository_owner }}/actions/runners)
+          self=$(echo "$runners" | jq --arg label "self-ubuntu-24.04" '[.runners[] | any(.labels[]; .name == $label) and .status == "online"] | any')
+          if [ "$self" = "true" ]; then
+             # Check chosen-runner using two separate tests
+             if [ "${{ github.event.inputs.chosen-runner }}" = "" ] || [ "${{ github.event.inputs.chosen-runner }}" = "self-ubuntu-24.04" ] || [ "${{ github.event.inputs.chosen-runner }}" = "none" ]; then
+                runner="self-ubuntu-24.04"
+                echo "runner=self-ubuntu-24.04" >> "$GITHUB_OUTPUT"
+             else
+                echo "runner=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+             fi
+          else
+             echo "runner=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+          fi
+          echo "event: x${{ github.event.inputs.chosen-runner }}x"
+          echo "runner=$runner"
+          echo "self=$self"
+          echo "runners=$runners"
+          echo "chosen-runner=${{ inputs.chosen-runner }}"
+      - name: Print runner
+        run: |
+          echo "Runner: ${{ steps.check.outputs.runner }}"
+
+  build-cache:
+    needs: check-runner
+    runs-on: ${{ needs.check-runner.outputs.runner }}
+    permissions:
+      packages: write
+    continue-on-error: false
+    strategy:
+      matrix:
+        env_variant: [omp]
+    steps:
+   
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up Spack
+      uses: spack/setup-spack@v2.1.1
+      with:
+        buildcache: true
+        color: true
+        path: _spack
+    - name: Install
+      run: |
+        ls -l
+        spack -e spack/kokkidio-${{ matrix.env_variant }} install --no-check-signature --use-buildcache auto
+
+    - name: Push packages and update index
+      run: |
+        spack -e spack/kokkidio-${{ matrix.env_variant }} mirror set --push --oci-username ${{ github.actor }} --oci-password "${{ secrets.GITHUB_TOKEN }}" numpex-buildcache
+        spack -e spack/kokkidio-${{ matrix.env_variant }} buildcache push --base-image ubuntu:24.04 --unsigned --update-index numpex-buildcache
+      if: ${{ !cancelled() }}
+
+  build:
+    needs: [check-runner,build-cache]
+    runs-on: ${{ needs.check-runner.outputs.runner }}
+    permissions:
+      packages: write
+    continue-on-error: true
+    strategy:
+      matrix:
+        env_variant: [omp]
+        preset: [default]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up Spack
+      uses: spack/setup-spack@v2.1.1
+      with:
+        buildcache: true
+        color: true
+        path: _spack
+
+    - name: Spack Install
+      run: spack -e spack/kokkidio-${{ matrix.env_variant }} install --no-check-signature --use-buildcache auto
+
+    - name: Configure CMake
+      shell: spack-bash {0}
+      run: |
+        spack env activate spack/kokkidio-${{ matrix.env_variant }}
+        cmake --preset ${{ matrix.preset }}
+
+    - name: Build
+      run: cmake --build --preset ${{ matrix.preset }}
+
+    - name: Test
+      run: ctest --preset ${{ matrix.preset }}

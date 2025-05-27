@@ -1,7 +1,7 @@
 #include <Kokkidio.hpp>
 #include <iostream>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 
 template<typename ViewMapType>

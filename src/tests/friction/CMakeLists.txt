@@ -1,5 +1,5 @@
 add_executable( friction "" )
-
+target_link_libraries( friction PRIVATE kokkidio )
 target_sources( friction PRIVATE
 	main.cpp
 	friction_cpu.cpp
@@ -34,3 +34,4 @@ if(NOT KOKKIDIO_CPU_ONLY)
 endif()
 
 conf(friction)
+add_test(NAME friction COMMAND friction)

@@ -10,7 +10,7 @@
 #include <regex>
 
 #include "funcWrapper.hpp"
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 #include "Kokkidio/TargetEnum.hpp"
 
 namespace Kokkidio
