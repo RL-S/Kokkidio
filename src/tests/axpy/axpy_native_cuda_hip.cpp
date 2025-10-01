@@ -8,7 +8,7 @@ namespace Kokkidio::gpu
 namespace kernel
 {
 
-/* CUDA kernel with Eigen's .dot() function */
+/* CUDA kernel with axpy logic */
 __global__ void cstyle(scalar* z, scalar a, const scalar* x, const scalar* y, int nRows){
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	if (idx < nRows){

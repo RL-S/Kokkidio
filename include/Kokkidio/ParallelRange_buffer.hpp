@@ -99,8 +99,8 @@ using ColType = typename ColTypeHelper<DenseType>::Type;
 
 template<typename _ColType>
 struct DeviceBuffer {
-	using ColType = _ColType;
-	using LoopType    = chunk::LoopType<Target::device, ColType>;
+	using ColType  = _ColType;
+	using LoopType = chunk::LoopType<Target::device, ColType>;
 };
 
 

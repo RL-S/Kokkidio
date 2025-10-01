@@ -76,6 +76,6 @@ KOKKIDIO_INSTANTIATE(KOKKIDIO_AXPY_TARGET, Kernel::kokkidio_range)
 
 
 #undef KOKKIDIO_INSTANTIATE
-#undef KOKKIDIO_DOTPRODUCT_TARGET
+#undef KOKKIDIO_AXPY_TARGET
 
 } // namespace Kokkidio::unif
