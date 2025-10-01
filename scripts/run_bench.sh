@@ -56,7 +56,7 @@ while [ : ]; do
 			exit
 			;;
 		-x | --example)
-			if ! [[ "$2" =~ axpy|dotProduct|norm|friction ]]; then
+			if ! [[ "$2" =~ axpy|dotProduct|norm|friction|rpow ]]; then
 				echo "Unknown example: \"$2\". Exiting..."
 				print_help
 				exit
@@ -126,6 +126,14 @@ elif [[ "$target" == "cpu" ]]; then
 else
 	echo "Invalid target! Use \"gpu\" or \"cpu\"! Exiting..."
 	exit
+fi
+
+if [[ "$example" == "rpow" ]]; then
+	if [[ "$target" == "gpu" ]]; then
+		iter=500
+	elif [[ "$target" == "cpu" ]]; then
+		iter=5
+	fi
 fi
 
 
@@ -200,8 +208,11 @@ fi
 logfile="$outfile.log"
 outfile+=".csv"
 echo "Outfile: $outfile"
-		
+
+
+
 optkeys=()
+
 
 if [[ "$example" == "axpy" ]]; then
 	if [[ "$target" != "cpu" ]]; then
@@ -224,7 +235,6 @@ if [[ "$example" == "axpy" ]]; then
 		)
 	fi
 fi
-
 
 
 
@@ -261,9 +271,6 @@ fi
 
 
 
-
-
-
 if [[ "$example" == "norm" ]]; then
 	if [[ "$target" != "cpu" ]]; then
 		optkeys+=(
@@ -284,6 +291,7 @@ if [[ "$example" == "norm" ]]; then
 		)
 	fi
 fi
+
 
 
 if [[ "$example" == "friction" ]]; then
@@ -313,6 +321,31 @@ if [[ "$example" == "friction" ]]; then
 			"CPU--unified-kokkidio_index_stackbuf"
 			"CPU--unified-kokkidio_range_fullbuf"
 			"CPU--unified-kokkidio_range_chunkbuf"
+		)
+	fi
+fi
+
+
+
+if [[ "$example" == "rpow" ]]; then
+	if [[ "$target" != "cpu" ]]; then
+		optkeys+=(
+			"GPU--native-cstyle"
+			"GPU--unified-cstyle"
+			"GPU--unified-kokkidio_index"
+			"GPU--unified-kokkidio_range"
+		)
+	fi
+	if [[ "$target" != "gpu" ]]; then
+		optkeys+=(
+			"CPU--native-warmup"
+			"CPU--native-cstyle_seq"
+			"CPU--native-cstyle_par"
+			"CPU--native-eigen_seq"
+			"CPU--native-eigen_par"
+			"CPU--unified-cstyle"
+			"CPU--unified-kokkidio_index"
+			"CPU--unified-kokkidio_range"
 		)
 	fi
 fi

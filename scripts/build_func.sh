@@ -549,10 +549,11 @@ build_tests () {
 		# Without these OMP settings, Kokkos complains about their absence.
 		export OMP_PROC_BIND=spread 
 		export OMP_PLACES=threads
-		$builddir/axpy/axpy --size 4 50 --runs 2
-		$builddir/dotProduct/dotProduct --size 4 50 --runs 2
-		$builddir/norm/norm --size 50 --runs 2
-		$builddir/friction/friction --size 50 --runs 2
+		$builddir/axpy/axpy             --size 4  50 --runs 2
+		$builddir/dotProduct/dotProduct --size 4  50 --runs 2
+		$builddir/norm/norm             --size 50    --runs 2
+		$builddir/friction/friction     --size 50    --runs 2
+		$builddir/rpow/rpow             --size 50    --runs 2
 		echo "Test runs in $buildtype mode finished."
 	fi
 }

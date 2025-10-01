@@ -65,7 +65,8 @@ run_all () {
 	done
 }
 
-run_all axpy
-run_all dotProduct
-run_all norm
-run_all friction
+# run_all axpy
+# run_all dotProduct
+# run_all norm
+# run_all friction
+run_all rpow

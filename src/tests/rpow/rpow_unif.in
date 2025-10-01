@@ -1,0 +1,101 @@
+#include "rpow.hpp"
+
+#ifndef KOKKIDIO_RPOW_TARGET
+#define KOKKIDIO_RPOW_TARGET Target::device
+#endif
+
+namespace Kokkidio::unif
+{
+
+template<Target target, Kernel k>
+void rpow(KOKKIDIO_RPOW_ARGS){
+
+	Kokkidio::DualViewMap<ArrayXs, target>
+		oview {out, DontCopyToTarget};
+
+	Kokkidio::DualViewMap<const ArrayXs, target>
+		iview {in};
+
+	Index nRows {out.rows()};
+	auto run = [&](const auto& func) -> void {
+		for (int i = 0; i < nRuns; ++i){
+			parallel_for<target>( nRows, func );
+		}
+	};
+
+	using K = Kernel;
+	if constexpr (k == K::cstyle){
+		auto func = KOKKOS_LAMBDA(int i){
+			auto getData = [&](auto& view){
+				return view.view_target().data();
+			};
+			scalar* optr { getData(oview) };
+			const scalar* iptr { getData(iview) };
+			optr[i] = rpow_sum( iptr[i] );
+		};
+		run(func);
+	} else
+	if constexpr (k == K::kokkos){
+		auto func = KOKKOS_LAMBDA(int row){
+			oview.view_target()(row, 0) = rpow_sum(
+				iview.view_target()(row, 0)
+			);
+		};
+		auto policy { Kokkos::RangePolicy<ExecutionSpace<target>>(0, nRows) };
+		for (int i = 0; i < nRuns; ++i){
+			Kokkos::parallel_for(policy, func);
+		}
+	} else
+	if constexpr (k == K::kokkidio_index){
+		auto func = KOKKOS_LAMBDA(int row){
+			oview.map()(row) = rpow_sum( iview.map()(row) );
+		};
+		run(func);
+	} else
+	if constexpr (k == K::kokkidio_range){
+		auto chunkBuf { makeBuffer<Array1s, target>(nRows) };
+		
+		for (int r = 0; r < nRuns; ++r){
+			parallel_for_chunks<target>( 
+				nRows, 
+				KOKKOS_LAMBDA(EigenRange<target> chunk){
+					auto buf { getBuffer(chunkBuf, chunk) };
+					// if constexpr (target == Target::device){
+					// 	if ( buf.size() != 1 ){
+					// 		printf(
+					// 			"Buffer problem at chunk %i\n"
+					// 			, chunk.get()
+					// 		);
+					// 	}
+					// 	if ( chunk.get() == 10000000 - 1 ){
+					// 		printf("Chunk %i here.\n", chunk.get() );
+					// 	}
+					// }
+					buf = 0;
+					for (Index i{0}; i<rpow_ctrl::nIter; ++i){
+						auto sign = static_cast<scalar>( -2 * (i % 2) + 1 );
+						buf += sign * chunk(iview).pow( static_cast<scalar>(i) );
+					}
+					chunk(oview) = buf;
+				}
+			);
+		}
+	}
+
+	oview.copyToHost();
+}
+
+#define KOKKIDIO_INSTANTIATE(CTARGET, KERNEL) \
+template void rpow<CTARGET, KERNEL>(KOKKIDIO_RPOW_ARGS);
+
+
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RPOW_TARGET, Kernel::cstyle)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RPOW_TARGET, Kernel::kokkos)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RPOW_TARGET, Kernel::kokkidio_index)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RPOW_TARGET, Kernel::kokkidio_range)
+
+
+#undef KOKKIDIO_INSTANTIATE
+#undef KOKKIDIO_RPOW_TARGET
+
+} // namespace Kokkidio::unif
