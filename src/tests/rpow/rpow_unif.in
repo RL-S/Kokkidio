@@ -60,21 +60,13 @@ void rpow(KOKKIDIO_RPOW_ARGS){
 				nRows, 
 				KOKKOS_LAMBDA(EigenRange<target> chunk){
 					auto buf { getBuffer(chunkBuf, chunk) };
-					// if constexpr (target == Target::device){
-					// 	if ( buf.size() != 1 ){
-					// 		printf(
-					// 			"Buffer problem at chunk %i\n"
-					// 			, chunk.get()
-					// 		);
-					// 	}
-					// 	if ( chunk.get() == 10000000 - 1 ){
-					// 		printf("Chunk %i here.\n", chunk.get() );
-					// 	}
-					// }
 					buf = 0;
 					for (Index i{0}; i<rpow_ctrl::nIter; ++i){
 						auto sign = static_cast<scalar>( -2 * (i % 2) + 1 );
-						buf += sign * chunk(iview).pow( static_cast<scalar>(i) );
+						buf += sign * Kokkidio::pow(
+							chunk(iview),
+							static_cast<scalar>(i)
+						);
 					}
 					chunk(oview) = buf;
 				}
