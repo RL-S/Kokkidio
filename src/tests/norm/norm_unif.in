@@ -39,7 +39,9 @@ scalar norm(const MatrixXs& mat, int nRuns){
 	if constexpr (k == K::kokkidio_range){
 		printd("running unified-kokkidio_range.\n");
 		auto func = KOKKOS_LAMBDA(ParallelRange<target> rng, scalar& max){
-			max = std::max( max, rng(map).colwise().norm().maxCoeff() );
+			if (rng.size() > 0){
+				max = std::max( max, rng(map).colwise().norm().maxCoeff() );
+			}
 		};
 		reduce(func);
 	} else 
