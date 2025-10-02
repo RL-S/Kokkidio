@@ -42,6 +42,15 @@ public:
 	}
 
 	KOKKOS_FUNCTION
+	constexpr auto size() const -> std::conditional_t<isHost, Index, int> {
+		if constexpr (isHost){
+			return m_rng.size();
+		} else {
+			return 1;
+		}
+	}
+
+	KOKKOS_FUNCTION
 	auto asIndexRange() const
 		-> std::conditional_t<isHost, const IndexRange<Index>&, IndexRange<Index>>
 	{
