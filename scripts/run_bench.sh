@@ -56,7 +56,7 @@ while [ : ]; do
 			exit
 			;;
 		-x | --example)
-			if ! [[ "$2" =~ axpy|dotProduct|norm|friction|rpow ]]; then
+			if ! [[ "$2" =~ axpy|dotProduct|norm|friction|rpow|raxpy ]]; then
 				echo "Unknown example: \"$2\". Exiting..."
 				print_help
 				exit
@@ -128,7 +128,7 @@ else
 	exit
 fi
 
-if [[ "$example" == "rpow" ]]; then
+if [[ "$example" == "rpow" ]] || [[ "$example" == "raxpy" ]]; then
 	if [[ "$target" == "gpu" ]]; then
 		iter=500
 	elif [[ "$target" == "cpu" ]]; then
@@ -346,6 +346,41 @@ if [[ "$example" == "rpow" ]]; then
 			"CPU--unified-cstyle"
 			"CPU--unified-kokkidio_index"
 			"CPU--unified-kokkidio_range"
+		)
+	fi
+fi
+
+
+
+if [[ "$example" == "raxpy" ]]; then
+	if [[ "$target" != "cpu" ]]; then
+		optkeys+=(
+			"GPU--native-cstyle"
+			"GPU--unified-cstyle"
+			"GPU--unified-kokkos"
+			"GPU--unified-kokkos_writeonce"
+			"GPU--unified-kokkidio_index"
+			"GPU--unified-kokkidio_range"
+			"GPU--unified-kokkidio_range_writebuf"
+			"GPU--unified-kokkidio_range_nobuf"
+			"GPU--unified-kokkidio_range_accbuf"
+		)
+	fi
+	if [[ "$target" != "gpu" ]]; then
+		optkeys+=(
+			"CPU--native-cstyle_seq"
+			"CPU--native-cstyle_par"
+			"CPU--native-eigen_seq_nochunks"
+			"CPU--native-eigen_seq"
+			"CPU--native-eigen_par_buf"
+			"CPU--native-eigen_par"
+			"CPU--unified-cstyle"
+			"CPU--unified-kokkos"
+			"CPU--unified-kokkidio_index"
+			"CPU--unified-kokkidio_range"
+			"CPU--unified-kokkidio_range_writebuf"
+			"CPU--unified-kokkidio_range_nobuf"
+			"CPU--unified-kokkidio_range_accbuf"
 		)
 	fi
 fi

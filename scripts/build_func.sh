@@ -554,6 +554,7 @@ build_tests () {
 		$builddir/norm/norm             --size 50    --runs 2
 		$builddir/friction/friction     --size 50    --runs 2
 		$builddir/rpow/rpow             --size 50    --runs 2
+		$builddir/raxpy/raxpy           --size 50    --runs 2
 		echo "Test runs in $buildtype mode finished."
 	fi
 }

@@ -1,0 +1,251 @@
+#include "raxpy.hpp"
+
+#include "Kokkidio/AccessBuffer.hpp"
+
+#ifndef KOKKIDIO_RAXPY_TARGET
+#define KOKKIDIO_RAXPY_TARGET Target::device
+#endif
+
+namespace Kokkidio::unif
+{
+
+
+template<typename _ViewMapType>
+class AccessBuffer {
+public:
+	using ViewMapType = _ViewMapType;
+	static_assert( is_ViewMap_v<ViewMapType> || is_DualViewMap_v<ViewMapType> );
+
+	static constexpr Target target {ViewMapType::target};
+	static constexpr bool isHost {target == Target::host};
+
+	class Empty {};
+	using Storage = std::conditional_t<isHost, Empty, Array1s>;
+
+private:
+	/* can't use observer_ptr here, 
+		* because make_observer is not a __device__ function,
+		* and this class gets instantiated inside kernels. */
+	const ViewMapType* m_obj {nullptr};
+	const EigenRange<target>* m_rng {nullptr};
+	Storage m_store;
+
+	KOKKOS_FUNCTION
+	// KOKKIDIO_INLINE
+	auto viewmap() -> const ViewMapType& {
+		return assertPtr(m_obj);
+	}
+
+	KOKKOS_FUNCTION
+	// KOKKIDIO_INLINE
+	auto range() -> const EigenRange<target>& {
+		return assertPtr(m_rng);
+	}
+
+public:
+
+	KOKKOS_FUNCTION
+	AccessBuffer(const _ViewMapType& obj, const EigenRange<target>& rng)
+	{
+		this->m_obj = &obj;
+		this->m_rng = &rng;
+		printdl(
+			"AccessBuffer ctor. Viewmap size: %ix%i, "
+			"Range: [%i,%i) -> size: %i\n"
+			, this->viewmap().rows()
+			, this->viewmap().cols()
+			, this->range().asIndexRange().start()
+			, this->range().asIndexRange().end()
+			, this->range().size()
+		);
+	}
+
+	KOKKOS_FUNCTION
+	KOKKIDIO_INLINE
+	decltype(auto) get() {
+		if constexpr (isHost){
+			return this->range()( this->viewmap() );
+		} else {
+			return (m_store); // parentheses for adding lvalue reference
+		}
+	}
+
+	KOKKOS_FUNCTION
+	KOKKIDIO_INLINE
+	void write() {
+		if constexpr (isHost){
+			printdl("AccessBuffer, on host: Skipping write().\n");
+			; // do nothing
+		} else {
+			printdl("AccessBuffer, on device: Writing back to viewmap.\n");
+			this->range()( this->viewmap() ) = m_store;
+		}
+	}
+};
+
+
+
+template<Target target, Kernel k>
+void raxpy(KOKKIDIO_RAXPY_ARGS){
+
+	Kokkidio::DualViewMap<ArrayXs, target>
+		zview {z};
+		// zview {z, DontCopyToTarget};
+
+	Kokkidio::DualViewMap<const ArrayXs, target>
+		xview {x},
+		yview {y};
+
+	Index nRows {z.rows()};
+
+	using K = Kernel;
+	if constexpr (k == K::cstyle){
+		auto func = KOKKOS_LAMBDA(int i){
+			auto getData = [&](auto& view){
+				return view.view_target().data();
+			};
+			scalar* zptr { getData(zview) };
+			const scalar
+				* xptr { getData(xview) },
+				* yptr { getData(yview) };
+			raxpy_sum( zptr[i], a, xptr[i], yptr[i] );
+		};
+		auto policy { Kokkos::RangePolicy<ExecutionSpace<target>>(0, nRows) };
+		for (int i = 0; i < nRuns; ++i){
+			Kokkos::parallel_for(policy, func);
+		}
+	} else
+	if constexpr (k == K::kokkos){
+		auto func = KOKKOS_LAMBDA(int row){
+			raxpy_sum(
+				zview.view_target()(row, 0), a,
+				xview.view_target()(row, 0),
+				yview.view_target()(row, 0)
+			);
+		};
+		auto policy { Kokkos::RangePolicy<ExecutionSpace<target>>(0, nRows) };
+		for (int i = 0; i < nRuns; ++i){
+			Kokkos::parallel_for(policy, func);
+		}
+	} else
+	if constexpr (k == K::kokkos_writeonce){
+		auto func = KOKKOS_LAMBDA(int row){
+			scalar zsum;
+			raxpy_sum(
+				zsum, a,
+				xview.view_target()(row, 0),
+				yview.view_target()(row, 0)
+			);
+			zview.view_target()(row, 0) = zsum;
+		};
+		auto policy { Kokkos::RangePolicy<ExecutionSpace<target>>(0, nRows) };
+		for (int i = 0; i < nRuns; ++i){
+			Kokkos::parallel_for(policy, func);
+		}
+	} else
+	if constexpr (k == K::kokkidio_index){
+		auto func = KOKKOS_LAMBDA(int row){
+			raxpy_sum(
+				zview.map()(row), a,
+				xview.map()(row),
+				yview.map()(row)
+			);
+		};
+		for (int i = 0; i < nRuns; ++i){
+			Kokkidio::parallel_for<target>( nRows, func );
+		}
+	} else
+	if constexpr (k == K::kokkidio_range){
+		auto chunkBuf { makeBuffer<Array3s, target>(nRows) };
+		
+		for (int r = 0; r < nRuns; ++r){
+			Kokkidio::parallel_for_chunks<target>( 
+				nRows, 
+				KOKKOS_LAMBDA(EigenRange<target> chunk){
+					auto buf { getBuffer(chunkBuf, chunk) };
+					auto zbuf { buf.row(0).transpose() };
+					auto xbuf { buf.row(1).transpose() };
+					auto ybuf { buf.row(2).transpose() };
+					xbuf = chunk(xview);
+					ybuf = chunk(yview);
+					raxpy_sum(
+						zbuf, a,
+						xbuf,
+						ybuf
+					);
+					chunk(zview) = zbuf;
+				}
+			);
+		}
+	} else
+	if constexpr (k == K::kokkidio_range_writebuf){
+		auto chunkBuf { makeBuffer<Array1s, target>(nRows) };
+		
+		for (int r = 0; r < nRuns; ++r){
+			Kokkidio::parallel_for_chunks<target>( 
+				nRows, 
+				KOKKOS_LAMBDA(EigenRange<target> chunk){
+					auto buf { getBuffer(chunkBuf, chunk) };
+					raxpy_sum(
+						buf, a,
+						chunk(xview),
+						chunk(yview)
+					);
+					chunk(zview) = buf;
+				}
+			);
+		}
+	} else
+	if constexpr (k == K::kokkidio_range_nobuf){
+		for (int r = 0; r < nRuns; ++r){
+			Kokkidio::parallel_for_chunks<target>( 
+				nRows, 
+				KOKKOS_LAMBDA(EigenRange<target> chunk){
+					raxpy_sum(
+						chunk(zview), a,
+						chunk(xview),
+						chunk(yview)
+					);
+				}
+			);
+		}
+	} else
+	if constexpr (k == K::kokkidio_range_accbuf){
+		for (int r = 0; r < nRuns; ++r){
+			Kokkidio::parallel_for_chunks<target>( 
+				nRows, 
+				KOKKOS_LAMBDA(EigenRange<target> chunk){
+					// unif::AccessBuffer zbuf {zview, chunk};
+					auto zbuf { make_AccessBuffer(zview, chunk) };
+					raxpy_sum(
+						zbuf.get(), a,
+						chunk(xview),
+						chunk(yview)
+					);
+					zbuf.write();
+				}
+			);
+		}
+	}
+
+	zview.copyToHost();
+}
+
+#define KOKKIDIO_INSTANTIATE(CTARGET, KERNEL) \
+template void raxpy<CTARGET, KERNEL>(KOKKIDIO_RAXPY_ARGS);
+
+
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::cstyle)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkos)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkos_writeonce)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkidio_index)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkidio_range)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkidio_range_writebuf)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkidio_range_nobuf)
+KOKKIDIO_INSTANTIATE(KOKKIDIO_RAXPY_TARGET, Kernel::kokkidio_range_accbuf)
+
+
+#undef KOKKIDIO_INSTANTIATE
+#undef KOKKIDIO_RAXPY_TARGET
+
+} // namespace Kokkidio::unif
