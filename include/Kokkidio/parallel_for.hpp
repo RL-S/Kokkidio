@@ -2,7 +2,7 @@
 #define KOKKIDIO_PARALLEL_FOR_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 #include "Kokkidio/ParallelRange.hpp"

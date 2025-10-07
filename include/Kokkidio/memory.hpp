@@ -2,7 +2,7 @@
 #define KOKKIDIO_MEMORY_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 #if defined(__clang__) || defined(_MSVC_VER)

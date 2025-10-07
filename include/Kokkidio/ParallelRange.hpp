@@ -2,7 +2,7 @@
 #define KOKKIDIO_PARALLELRANGE_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 #include "Kokkidio/EigenRange.hpp"
@@ -98,7 +98,7 @@ public:
 	KOKKOS_FUNCTION
 	void setChunks(Index chunkSizeMax = chunk::defaultSize){
 		this->setChunkSize(chunkSizeMax);
-		this->setNChunks();
+		// this->setNChunks();
 	}
 
 protected:
@@ -109,31 +109,53 @@ protected:
 		}
 	}
 
+	// KOKKOS_FUNCTION
+	// void setNChunks(){
+	// 	if constexpr (isHost){
+	// 		const auto& r { this->get().values };
+	// 		const Index& chunkSize { this->chunkSize() };
+	// 		Index& nChunks {m_chunks.num};
+	// 		nChunks = 0;
+	// 		if ( chunkSize > 0){
+	// 			nChunks  =  r.size / chunkSize;
+	// 			nChunks += (r.size % chunkSize) > 0 ? 1 : 0;
+	// 		}
+	// 	}
+	// }
+
+public:
+	// KOKKOS_FUNCTION
+	// ChunkType make_chunk(Index i) const {
+	// 	using T = Target;
+	// 	if constexpr (isHost){
+	// 		const MemberType& cols { this->get() };
+	// 		const ChunkInfo<T::host>& chunks { this->chunkInfo() };
+	// 		Index
+	// 			chunkStart   { cols.start() + i * chunks.size },
+	// 			colsUntilEnd { cols.end() - chunkStart },
+	// 			chunkSizeCur { std::min(chunks.size, colsUntilEnd) };
+	// 		return { IndexRange<Index>{chunkStart, chunkSizeCur} };
+	// 	} else {
+	// 		return {};
+	// 	}
+	// }
+
 	KOKKOS_FUNCTION
-	void setNChunks(){
+	constexpr Index chunkSize([[maybe_unused]] Index chunkStart) const {
 		if constexpr (isHost){
-			const auto& r { this->get().values };
-			const Index& chunkSize { this->chunkSize() };
-			Index& nChunks {m_chunks.num};
-			nChunks = 0;
-			if ( chunkSize > 0){
-				nChunks  =  r.size / chunkSize;
-				nChunks += (r.size % chunkSize) > 0 ? 1 : 0;
-			}
+			return std::min(
+				this->get().end() - chunkStart,
+				this->chunkSize()
+			);
+		} else {
+			return 1;
 		}
 	}
 
-public:
 	KOKKOS_FUNCTION
-	ChunkType make_chunk(Index i) const {
+	ChunkType make_chunk_s(Index chunkStart, Index chunkSizeCur) const {
 		using T = Target;
 		if constexpr (isHost){
-			const MemberType& cols { this->get() };
-			const ChunkInfo<T::host>& chunks { this->chunkInfo() };
-			Index
-				chunkStart   { cols.start() + i * chunks.size },
-				colsUntilEnd { cols.end() - chunkStart },
-				chunkSizeCur { std::min(chunks.size, colsUntilEnd) };
 			return { IndexRange<Index>{chunkStart, chunkSizeCur} };
 		} else {
 			return {};
@@ -164,8 +186,15 @@ public:
 			assert( omp_get_max_threads() == 1 || omp_in_parallel() );
 			#endif
 
-			for (Index i=0; i<this->nChunks(); ++i){
-				func( this->make_chunk(i) );
+			// for (Index i=0; i<this->nChunks(); ++i){
+			// 	func( this->make_chunk(i) );
+			// }
+
+			Index chunkStart {this->get().start()}, chunkSize;
+			while ( chunkStart < this->get().end() ){
+				chunkSize = this->chunkSize(chunkStart);
+				func( this->make_chunk_s(chunkStart, chunkSize) );
+				chunkStart += chunkSize;
 			}
 		} else {
 			func( ChunkType{m_rng} );

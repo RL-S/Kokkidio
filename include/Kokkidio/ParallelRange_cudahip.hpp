@@ -2,7 +2,7 @@
 #define KOKKIDIO_PARALLELRANGE_CUDA_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 /* source: https://stackoverflow.com/a/11994395 (CC BY-SA 4.0)*/
