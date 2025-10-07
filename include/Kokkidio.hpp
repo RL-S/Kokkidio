@@ -10,6 +10,7 @@
 #include "Kokkidio/ViewMap.hpp"
 #include "Kokkidio/DualViewMap.hpp"
 #include "Kokkidio/ParallelRange.hpp"
+#include "Kokkidio/AccessBuffer.hpp"
 #include "Kokkidio/parallel_for.hpp"
 #include "Kokkidio/parallel_reduce.hpp"
 
