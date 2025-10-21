@@ -128,7 +128,9 @@ void runAndTime_single(
 
 
 struct RunOpts {
-	std::string groupComment;
+	std::string
+		groupComment,
+		impl {"all"};
 	bool skipWarmup {false};
 	bool useGnuplot {false};
 	int  runNo {0};
@@ -154,9 +156,17 @@ void runAndTime(
 	([&]{
 		std::string comment {opts.groupComment + "-"};
 		int repetitions {1};
-		if (i == 0 && !opts.skipWarmup){
-			comment += "warmup";
-			repetitions = nWarmups;
+		if (i == 0){
+			if (opts.skipWarmup){
+				repetitions = 0;
+			} else {
+				comment += "warmup";
+				repetitions = nWarmups;
+			}
+		} else
+		if (opts.impl != "all" && opts.impl != enum_name(impls) ){
+			// repetitions = 0;
+			return;
 		} else {
 			comment += std::string{enum_name(impls)};
 			comment += std::string( maxLen - comment.length(), ' ' );

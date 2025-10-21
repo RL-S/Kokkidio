@@ -66,13 +66,17 @@ void runFric(const BenchOpts& b){
 
 	RunOpts opts;
 	opts.useGnuplot = b.gnuplot;
+	opts.impl = b.impl;
 	auto setNat = [&](){
 		opts.groupComment = "native";
-		opts.skipWarmup = false;
+		opts.skipWarmup = b.skipWarmup;
 	};
 	auto setUni = [&](){
 		opts.groupComment = "unified";
 		opts.skipWarmup = true;
+		if (b.group != "all" || b.impl != "all"){
+			opts.skipWarmup = b.skipWarmup;
+		}
 	};
 
 	// using T = Target;
@@ -81,63 +85,71 @@ void runFric(const BenchOpts& b){
 	/* Run on GPU */
 	#ifndef KOKKIDIO_CPU_ONLY
 	if ( b.target != "cpu" ){
-		setNat();
-		runAndTime<fric_gpu, Target::device, K
-			, K::cstyle // first one is for warmup
-			, K::cstyle
-			, K::eigen_colwise_fullbuf
-		>(
-			opts, pass,
-			flux_out, flux_in, d, v, n, b.nRuns
-		);
+		if (b.group != "unified"){
+			setNat();
+			runAndTime<fric_gpu, Target::device, K
+				, K::cstyle // first one is for warmup
+				, K::cstyle
+				, K::eigen_colwise_fullbuf
+			>(
+				opts, pass,
+				flux_out, flux_in, d, v, n, b.nRuns
+			);
+		}
 
-		setUni();
-		runAndTime<fric_unif, Target::device, uK
-			// , uK::kokkidio_range_chunkbuf // warmup is skipped
-			// #ifndef KOKKIDIO_USE_SYCL
-			, uK::cstyle
-			// #endif
-			, uK::kokkidio_index_fullbuf
-			, uK::kokkidio_index_stackbuf
-			, uK::kokkidio_range_fullbuf
-			, uK::kokkidio_range_chunkbuf
-			KRUN_IF_ALL(
-			, uK::context_ranged
-			)
-		>(
-			opts, pass,
-			flux_out, flux_in, d, v, n, b.nRuns
-		);
+		if (b.group != "native"){
+			setUni();
+			runAndTime<fric_unif, Target::device, uK
+				, uK::kokkidio_range_chunkbuf // warmup is skipped
+				// #ifndef KOKKIDIO_USE_SYCL
+				, uK::cstyle
+				// #endif
+				, uK::kokkidio_index_fullbuf
+				, uK::kokkidio_index_stackbuf
+				, uK::kokkidio_range_fullbuf
+				, uK::kokkidio_range_chunkbuf
+				KRUN_IF_ALL(
+				, uK::context_ranged
+				)
+			>(
+				opts, pass,
+				flux_out, flux_in, d, v, n, b.nRuns
+			);
+		}
 	}
 	#endif
 
 	/* Run on CPU */
 	if ( b.target != "gpu" && b.nCols * b.nRuns <= 25e8 ){
-		setNat();
-		runAndTime<fric_cpu, Target::host, K
-			, K::cstyle // first one is for warmup
-			, K::cstyle
-			, K::eigen_ranged_fullbuf
-		>(
-			opts, pass,
-			flux_out, flux_in, d, v, n, b.nRuns
-		);
+		if (b.group != "unified"){
+			setNat();
+			runAndTime<fric_cpu, Target::host, K
+				, K::cstyle // first one is for warmup
+				, K::cstyle
+				, K::eigen_ranged_fullbuf
+			>(
+				opts, pass,
+				flux_out, flux_in, d, v, n, b.nRuns
+			);
+		}
 
-		setUni();
-		runAndTime<fric_unif, Target::host, uK
-			// , K::eigen_ranged_chunkbuf // warmup is skipped
-			, uK::cstyle
-			, uK::kokkidio_index_fullbuf  // painfully slow
-			, uK::kokkidio_index_stackbuf // painfully slow
-			, uK::kokkidio_range_fullbuf
-			, uK::kokkidio_range_chunkbuf
-			KRUN_IF_ALL(
-			, uK::context_ranged
-			)
-		>(
-			opts, pass,
-			flux_out, flux_in, d, v, n, b.nRuns
-		);
+		if (b.group != "native"){
+			setUni();
+			runAndTime<fric_unif, Target::host, uK
+				, uK::kokkidio_range_chunkbuf // warmup is skipped
+				, uK::cstyle
+				, uK::kokkidio_index_fullbuf  // painfully slow
+				, uK::kokkidio_index_stackbuf // painfully slow
+				, uK::kokkidio_range_fullbuf
+				, uK::kokkidio_range_chunkbuf
+				KRUN_IF_ALL(
+				, uK::context_ranged
+				)
+			>(
+				opts, pass,
+				flux_out, flux_in, d, v, n, b.nRuns
+			);
+		}
 	}
 
 
@@ -153,11 +165,18 @@ int main(int argc, char ** argv){
 
 	Kokkos::ScopeGuard guard(argc, argv);
 
-	Kokkidio::BenchOpts b;
+	namespace K = Kokkidio;
+	K::BenchOpts b;
 	if ( auto exitCode = parseOpts(b, argc, argv) ){
 		exit( exitCode.value() );
 	}
-	Kokkidio::runFric(b);
+	if ( !K::checkImpl<
+		K::unif::Kernel, 
+		K::fric::Kernel>(b) 
+	){
+		return 1;
+	}
+	K::runFric(b);
 	
 	return 0;
 }
