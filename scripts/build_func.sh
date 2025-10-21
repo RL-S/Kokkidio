@@ -519,6 +519,10 @@ build_tests () {
 	cmakeFlags+=" -DKokkos_ROOT=$Kokkos_ROOT"
 	cmakeFlags+=" -DKokkidio_ROOT=$Kokkidio_ROOT"
 
+	if [[ $backend =~ cpu ]]; then
+		cmakeFlags+=" -DKOKKIDIO_CPU_ONLY=ON"
+	fi
+
 	if [[ $backend_default == cuda ]] && [[ $backend =~ ompt|sycl ]]; then
 		runbuild=Release
 	else
