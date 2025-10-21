@@ -84,6 +84,21 @@ macro(kokkidio_configure_target TARGET_NAME)
 		)
 	endif()
 
+
+	# make sure vectorisation works as intended
+	# check a command-line and env var for override
+
+	if(KOKKIDIO_NO_ARCH_NATIVE_CMAKE)
+		message(STATUS "${TARGET_NAME}: skipping option \"-march=native\".")
+	else()
+		message(STATUS "Setting ${TARGET_NAME} option \"-march=native\".")
+		target_compile_options(${TARGET_NAME} ${TARGET_VISIBILITY}
+			$<$<COMPILE_LANGUAGE:CXX>:-march=native>
+		)
+	endif()
+
+
+
 	# get_target_property(COMP_DEFS ${TARGET_NAME} COMPILE_DEFINITIONS)
 	# message(STATUS "Compile definitions for ${TARGET_NAME}: ${COMP_DEFS}")
 
