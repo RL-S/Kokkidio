@@ -477,6 +477,8 @@ public:
 	KOKKOS_FUNCTION const MemberType& get() const;
 	KOKKOS_FUNCTION       MemberType& get();
 
+	KOKKOS_FUNCTION constexpr Index size() const;
+
 	KOKKOS_FUNCTION IndexRange<Index> asIndexRange() const;
 
 	template<typename EigenObj>
@@ -716,6 +718,28 @@ parallel_for<target>(size, KOKKOS_LAMBDA(ParallelRange<target> rng){
 ----
 
 See <<_eigenrange, `EigenRange`>> for the data type of the `chunk` parameter.
+
+[id=_parrange_zero_size]
+=== When `ParallelRange` has a size of zero...
+
+Some operations are not well-defined when `ParallelRange` has a size of zero.
+This can happen in cases with more available threads than work items.
+Currently, _Kokkidio_ does not prevent functors from being executed
+when this is the case, as doing so could introduce synchronisation deadlocks,
+if the functor contains a synchronisation barrier:
+The thread whose `ParallelRange` is of size zero will never reach the barrier.
+
+If your functor performs an action that is ill-defined for a data size of zero
+(e.g., a reduction involving an average, as one thread would divide by zero),
+add an early exit or conditional execution to your functor:
+
+----
+parallel_for<target>(size, KOKKOS_LAMBDA(ParallelRange<target> rng){
+	/* early return */
+	if (rng.size() == 0) return;
+	/* your code */
+});
+----
 
 [id=_data_structures]
 == Data structures
