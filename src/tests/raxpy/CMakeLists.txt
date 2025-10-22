@@ -3,7 +3,6 @@ add_executable( raxpy "" )
 target_sources( raxpy PRIVATE
 	main.cpp
 	raxpy_unif_cpu.cpp
-	raxpy_unif_gpu.cpp
 	raxpy_native_cpu.cpp
 )
 
@@ -25,11 +24,11 @@ endif()
 # 	)
 # endif()
 
-# # if (KOKKIDIO_USE_OMPT)
-# # 	target_sources( dotProduct PRIVATE 
-# # 		dotProduct_gpu_ompt.cpp
-# # 	)
-# # endif()
+if(NOT KOKKIDIO_CPU_ONLY)
+	target_sources( raxpy PRIVATE
+		raxpy_unif_gpu.cpp
+	)
+endif()
 
 conf(raxpy)
 

@@ -44,16 +44,18 @@ fi
 run_all () {
 	local example=$1
 	for target in gpu cpu; do
-# 	for target in cpu; do
+	# for target in cpu; do
 		if [[ "$target" == "gpu" ]] || [[ $isQuickTest == true ]]; then
 			np=(4)
 		else
 			np=(1 2 4)
-# 			np=(8 12 16 24 32 40 48 64)
+			# np=(24 32 40 48 64)
+			# np=(1 2 4 8 12 16 24 32 40 48 64)
 		fi
 		for p in "${np[@]}"; do
 			for scalar in float double; do
-# 			for scalar in float; do
+			# for scalar in float; do
+			# for scalar in double; do
 				for b in "${backends[@]}"; do
 					"$runscr" \
 						--backend $b \
@@ -72,5 +74,5 @@ run_all axpy
 run_all dotProduct
 run_all norm
 run_all friction
-run_all rpow
+# run_all rpow
 run_all raxpy

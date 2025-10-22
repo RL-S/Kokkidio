@@ -26,3 +26,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang|IntelLLVM")
 		)
 	endif()
 endif()
+
+
+set_if_defined(KOKKIDIO_NO_ARCH_NATIVE_CMAKE KOKKIDIO_NO_ARCH_NATIVE)
+if(NOT DEFINED KOKKIDIO_NO_ARCH_NATIVE_CMAKE)
+	message(STATUS "Using -march=native to enable host code vectorisation.")
+	message(STATUS "Set \"KOKKIDIO_NO_ARCH_NATIVE\" to ON to disable.")
+	set(KOKKIDIO_NO_ARCH_NATIVE_CMAKE OFF)
+endif()

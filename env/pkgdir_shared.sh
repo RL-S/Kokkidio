@@ -1,5 +1,6 @@
 
-export Eigen_ROOT="$PKGDIR/eigen/build"
+export Eigen_SRC="$PKGDIR/eigen"
+export Eigen_ROOT="$Eigen_SRC/build"
 Kokkos_BASE="$PKGDIR/kokkos"
 # only Kokkos_SRC is required
 export Kokkos_SRC="$Kokkos_BASE/src/kokkos-dev"

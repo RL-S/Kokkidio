@@ -4,21 +4,16 @@ namespace Kokkidio
 {
 
 #define KOKKIDIO_RAXPY_ARGS \
-	ArrayXs& z, scalar a, const ArrayXs& x, const ArrayXs& y, Index nRuns
-
-namespace raxpy_ctrl
-{
-
-KOKKIDIO_HOST_DEVICE_VAR(static constexpr Index nIter {501});
-
-} // namespace raxpy_ctrl
+	ArrayXs& z, scalar a, const ArrayXs& x, const ArrayXs& y, \
+	Index nRuns, [[maybe_unused]] Index chunksize
 
 
 template<typename Z, typename XY>
 KOKKOS_FUNCTION
-inline void raxpy_sum(Z&& z, scalar a, const XY& x, const XY& y){
+KOKKIDIO_INLINE
+void raxpy_sum(Z&& z, scalar a, const XY& x, const XY& y, int nIter){
 	z = 0;
-	for (Index i{0}; i<raxpy_ctrl::nIter; ++i){
+	for (Index i{0}; i<nIter; ++i){
 		auto sign = static_cast<scalar>( -2 * (i % 2) + 1 );
 		z += sign * a * x + sign * y;
 		// z += a * x + y;

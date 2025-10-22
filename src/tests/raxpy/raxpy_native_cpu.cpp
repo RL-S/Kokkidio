@@ -9,97 +9,107 @@ constexpr Target host { Target::host };
 template<>
 void raxpy<host, K::cstyle_seq>(KOKKIDIO_RAXPY_ARGS){
 
-	for (volatile int run = 0; run < nRuns; ++run){
-		scalar* zptr { z.data() };
-		const scalar
-			* xptr { x.data() },
-			* yptr { y.data() };
+	scalar* zptr { z.data() };
+	const scalar
+		* xptr { x.data() },
+		* yptr { y.data() };
 
-		for (int i = 0; i<z.rows(); ++i){
-			raxpy_sum( zptr[i], a, xptr[i], yptr[i] );
-		}
+	for (int i = 0; i<z.rows(); ++i){
+		scalar z_local;
+		raxpy_sum(
+			z_local, a,
+			xptr[i],
+			yptr[i],
+			nRuns
+		);
+		zptr[i] = z_local;
 	}
 }
 
 template<>
 void raxpy<host, K::cstyle_par>(KOKKIDIO_RAXPY_ARGS){
 
-	for (volatile int run = 0; run < nRuns; ++run){
-		scalar* zptr { z.data() };
-		const scalar
-			* xptr { x.data() },
-			* yptr { y.data() };
+	scalar* zptr { z.data() };
+	const scalar
+		* xptr { x.data() },
+		* yptr { y.data() };
 
-		KOKKIDIO_OMP_PRAGMA(parallel for)
-		for (int i = 0; i<z.rows(); ++i){
-			raxpy_sum( zptr[i], a, xptr[i], yptr[i] );
-		}
+	KOKKIDIO_OMP_PRAGMA(parallel for)
+	for (int i = 0; i<z.rows(); ++i){
+		scalar z_local;
+		raxpy_sum(
+			z_local, a,
+			xptr[i], 
+			yptr[i],
+			nRuns
+		);
+		zptr[i] = z_local;
 	}
 }
 
 template<>
 void raxpy<host, K::eigen_seq_nochunks>(KOKKIDIO_RAXPY_ARGS){
 
-	for (volatile int run = 0; run < nRuns; ++run){
-		raxpy_sum(z, a, x, y);
-	}
+	raxpy_sum(z, a, x, y, nRuns);
 }
 
 template<>
 void raxpy<host, K::eigen_seq>(KOKKIDIO_RAXPY_ARGS){
 
-	Index chunksizeMax { std::min(z.rows(), Kokkidio::chunk::defaultSize) };
+	Index chunksizeMax { std::min(z.rows(), chunksize) };
 	// ArrayXs bufm { chunksizeMax };
-	for (volatile int run = 0; run < nRuns; ++run){
-		Index start {0}, chunksize;
-		while (start < z.rows() ){
-			chunksize = std::min( z.rows() - start, chunksizeMax);
-			auto chunk = [&](auto& obj){
-				return obj.segment(start, chunksize);
-			};
-			// auto buf { bufm.head(chunksize) };
-			raxpy_sum(
-				chunk(z), a,
-				chunk(x),
-				chunk(y)
-			);
-			// chunk(z) = buf;
-			start += chunksize;
-		}
+	Index start {0}, chunksizeCur;
+	while (start < z.rows() ){
+		chunksizeCur = std::min( z.rows() - start, chunksizeMax);
+		auto chunk = [&](auto& obj){
+			return obj.segment(start, chunksizeCur);
+		};
+		// auto buf { bufm.head(chunksize) };
+		raxpy_sum(
+			chunk(z), a,
+			chunk(x),
+			chunk(y),
+			nRuns
+		);
+		// chunk(z) = buf;
+		start += chunksizeCur;
 	}
 }
 
 template<>
 void raxpy<host, K::eigen_par_buf>(KOKKIDIO_RAXPY_ARGS){
 
-	Index chunksizeMax { std::min( ompSegmentMaxSize( z.rows() ), 200) };
+	Index chunksizeMax { std::min( ompSegmentMaxSize( z.rows() ), chunksize) };
 	ArrayXXs bufs ( chunksizeMax, omp_get_max_threads() );
 	// printf("bufs size: %ix%i\n", bufs.rows(), bufs.cols() );
 
-	for (volatile int run = 0; run < nRuns; ++run){
-		KOKKIDIO_OMP_PRAGMA(parallel)
-		{
-			auto threadseg = ompSegment( z.rows() );
-			Index start { threadseg.start() }, chunksize;
-			while (start < threadseg.end() ){
-				chunksize = std::min( threadseg.end() - start, chunksizeMax);
-				// printf(
-				// 	"Thread #%i"
-				// 	", segment [%i,%i) (n=%i)"
-				// 	", chunk start %i, chunk size %i"
-				// 	"\n"
-				// 	, omp_get_thread_num()
-				// 	, threadseg.start(), threadseg.end(), threadseg.size()
-				// 	, start, chunksize
-				// );
-				auto chunk = [&](auto& obj){
-					return obj.segment(start, chunksize);
-				};
-				auto buf { bufs.col( omp_get_thread_num() ).head(chunksize) };
-				raxpy_sum( buf, a, chunk(x), chunk(y) );
-				chunk(z) = buf;
-				start += chunksize;
-			}
+	KOKKIDIO_OMP_PRAGMA(parallel)
+	{
+		auto threadseg = ompSegment( z.rows() );
+		Index start { threadseg.start() }, chunksizeCur;
+		while (start < threadseg.end() ){
+			chunksizeCur = std::min( threadseg.end() - start, chunksizeMax);
+			// printf(
+			// 	"Thread #%i"
+			// 	", segment [%i,%i) (n=%i)"
+			// 	", chunk start %i, chunk size %i"
+			// 	"\n"
+			// 	, omp_get_thread_num()
+			// 	, threadseg.start(), threadseg.end(), threadseg.size()
+			// 	, start, chunksizeCur
+			// );
+			auto chunk = [&](auto& obj){
+				return obj.segment(start, chunksizeCur);
+			};
+			auto buf { bufs.col( omp_get_thread_num() ).head(chunksizeCur) };
+			raxpy_sum(
+				buf, a,
+				chunk(x),
+				chunk(y),
+				nRuns
+			);
+			chunk(z) = buf;
+			start += chunksizeCur;
 		}
 	}
 }
@@ -107,34 +117,33 @@ void raxpy<host, K::eigen_par_buf>(KOKKIDIO_RAXPY_ARGS){
 template<>
 void raxpy<host, K::eigen_par>(KOKKIDIO_RAXPY_ARGS){
 
-	Index chunksizeMax { std::min( ompSegmentMaxSize( z.rows() ), 200) };
+	Index chunksizeMax { std::min( ompSegmentMaxSize( z.rows() ), chunksize) };
 
-	for (volatile int run = 0; run < nRuns; ++run){
-		KOKKIDIO_OMP_PRAGMA(parallel)
-		{
-			auto threadseg = ompSegment( z.rows() );
-			Index start { threadseg.start() }, chunksize;
-			while (start < threadseg.end() ){
-				chunksize = std::min( threadseg.end() - start, chunksizeMax);
-				// printf(
-				// 	"Thread #%i"
-				// 	", segment [%i,%i) (n=%i)"
-				// 	", chunk start %i, chunk size %i"
-				// 	"\n"
-				// 	, omp_get_thread_num()
-				// 	, threadseg.start(), threadseg.end(), threadseg.size()
-				// 	, start, chunksize
-				// );
-				auto chunk = [&](auto& obj){
-					return obj.segment(start, chunksize);
-				};
-				raxpy_sum(
-					chunk(z), a,
-					chunk(x),
-					chunk(y)
-				);
-				start += chunksize;
-			}
+	KOKKIDIO_OMP_PRAGMA(parallel)
+	{
+		auto threadseg = ompSegment( z.rows() );
+		Index start { threadseg.start() }, chunksizeCur;
+		while (start < threadseg.end() ){
+			chunksizeCur = std::min( threadseg.end() - start, chunksizeMax);
+			// printf(
+			// 	"Thread #%i"
+			// 	", segment [%i,%i) (n=%i)"
+			// 	", chunk start %i, chunk size %i"
+			// 	"\n"
+			// 	, omp_get_thread_num()
+			// 	, threadseg.start(), threadseg.end(), threadseg.size()
+			// 	, start, chunksizeCur
+			// );
+			auto chunk = [&](auto& obj){
+				return obj.segment(start, chunksizeCur);
+			};
+			raxpy_sum(
+				chunk(z), a,
+				chunk(x),
+				chunk(y),
+				nRuns
+			);
+			start += chunksizeCur;
 		}
 	}
 }

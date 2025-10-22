@@ -128,13 +128,21 @@ else
 	exit
 fi
 
-if [[ "$example" == "rpow" ]] || [[ "$example" == "raxpy" ]]; then
+if [[ "$example" == "rpow" ]]; then
 	if [[ "$target" == "gpu" ]]; then
 		iter=500
 	elif [[ "$target" == "cpu" ]]; then
 		iter=5
 	fi
 fi
+if [[ "$example" == "raxpy" ]]; then
+	if [[ "$target" == "gpu" ]]; then
+		iter=100000
+	elif [[ "$target" == "cpu" ]]; then
+		iter=100000
+	fi
+fi
+
 
 
 export OMP_NUM_THREADS=$cpusPerTask
@@ -143,9 +151,15 @@ export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
 
-rows=4
-if [[ "$example" != "dotProduct" ]]; then
-	rows=(1)
+rows=1
+if [[ $example =~ dotProduct|norm ]]; then
+	rows=4
+fi
+if [[ "$example" == "raxpy" ]] && [[ "$target" == cpu ]]; then
+	# the actual number of elements for this workload is
+	# rows * cols,
+	# but the rows parameter is used as the chunk size on cpu
+	rows=2048
 fi
 
 cols=(
@@ -265,8 +279,6 @@ if [[ "$example" == "dotProduct" ]]; then
 			"CPU--unified-kokkidio_range"
 		)
 	fi
-else
-	rows=(1)
 fi
 
 
@@ -430,8 +442,8 @@ writeColTitles "$outfile" "iter${sep}cols"
 for col in "${cols[@]}"
 do
 	echo "$iter$sep$col" >> "$outfile"
-	echo "cols: ${col}, iterations: ${iter}"
-	if [[ "$example" == "dotProduct" ]] || [[ "$example" == "norm" ]]; then
+	echo "rows: ${rows}, cols: ${col}, iterations: ${iter}"
+	if [[ "$example" =~ dotProduct|norm|raxpy ]]; then
 		output="$("$bin" -s $rows $col -r $iter -t $target)"
 	else
 		output="$("$bin" -s $col -r $iter -t $target)"

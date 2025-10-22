@@ -8,15 +8,62 @@ namespace Kokkidio
 {
 
 struct BenchOpts {
-	std::string target {"all"};
+	std::string
+		target {"all"},
+		group  {"all"},
+		impl   {"all"};
 	long
 		nRuns {1},
 		nRows {1},
 		nCols {512};
-	bool gnuplot {false};
+	bool
+		gnuplot {false},
+		skipWarmup {false};
 };
 
 inline void doNothing(CLI::App&){}
+
+namespace detail
+{
+
+template<typename ImplEnum>
+void appendEnumNames(std::string& enumVals){
+	magic_enum::enum_for_each<ImplEnum>([&](auto iter){
+		constexpr ImplEnum enumVal = iter;
+		enumVals += "\n    ";
+		enumVals += magic_enum::enum_name(enumVal);
+	});
+}
+
+} // namespace detail
+
+
+template<typename ... ImplEnum>
+bool checkImpl(const BenchOpts& opts){
+	if (opts.impl == "all"){
+		return true;
+	}
+	bool castSuccess {false};
+	([&]{
+		if (castSuccess){
+			return;
+		}
+		castSuccess = magic_enum::enum_cast<ImplEnum>(opts.impl).has_value();
+	}(), ...);
+	if (!castSuccess){
+		std::string enumVals;
+		([&]{
+			detail::appendEnumNames<ImplEnum>(enumVals);
+		}(), ...);
+		std::cerr
+			<< "Unknown implementation \"" 
+			<< opts.impl 
+			<< "\". Valid options are:"
+			<< enumVals
+			<< '\n';
+	}
+	return castSuccess;
+}
 
 template<typename Func = void(*)(CLI::App&)>
 std::optional<int> parseOpts(
@@ -45,11 +92,26 @@ std::optional<int> parseOpts(
 		"-r,--runs", opts.nRuns, "The number of repetitions"
 	)->check(CLI::PositiveNumber);
 
-	bool gnuplot {false};
 	app.add_flag(
-		"-g,--gnuplot", opts.gnuplot,
+		"-p,--gnuplot", opts.gnuplot,
 		"Whether to format output for piping to gnuplot"
 	);
+
+	app.add_flag(
+		"-n,--noWarmup", opts.skipWarmup, "Skip warmup runs."
+	);
+
+	app.add_option(
+		"-g,--group", opts.group,
+		"Choose implementation group (\"native\"/\"unified\"), or \"all\"."
+	)->check(
+		CLI::IsMember( {"native", "unified", "all"}, CLI::ignore_case )
+	);
+
+	app.add_option(
+		"-i,--impl", opts.impl,
+		"Choose specific implementation by name, or \"all\"."
+	)->ignore_case();
 
 	parseExtra(app);
 
@@ -63,12 +125,15 @@ std::optional<int> parseOpts(
 		opts.nCols = size[0];
 	}
 
-	if (!gnuplot){
+	if (!opts.gnuplot){
 		std::cout << "Using "
 			<< opts.nRows << " rows, "
 			<< opts.nCols << " columns, "
 			<< opts.nRuns << " iterations, "
-			<< "and target: " << opts.target 
+			<< "\n"
+			<< "target: \"" << opts.target << "\", "
+			<< "group: \"" << opts.group << "\", "
+			<< "and implementation: \"" << opts.impl << "\""
 			<< ".\n";
 	}
 
