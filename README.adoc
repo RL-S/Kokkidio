@@ -1439,6 +1439,49 @@ using _Kokkidio_'s function `set_is_cpu`, e.g.:
 set_is_cpu(myFile1.cpp)
 ----
 
+
+[id=_debugging]
+=== Debugging
+
+The _Kokkidio_ abstractions reside in the source code only, 
+not the machine code. 
+This means that all backend debugging options remain supported, 
+e.g., `gdb` in a `gcc` CPU build, 
+`CUDA-GDB` when using the CUDA backend, 
+`ROCgdb` for AMD GPUs, or 
+`gdb-oneapi` for SYCL applications built with `oneapi`.
+
+_Kokkidio_ uses `CMake` for its build configurations, 
+meaning that debugging flags can be set uniformly for all platforms via the 
+`CMAKE_BUILD_TYPE=Debug` option.
+_Kokkidio_'s build script (`build.sh` in the top level folder)
+offers easy access to this option, too, 
+with the command line option `--build-type Debug`.
+
+Additionally, users may define the preprocessor symbol `KOKKIDIO_DEBUG_OUTPUT` 
+or even `KOKKIDIO_DEBUG_OUTPUT_LOOP` 
+to obtain detailed console messages describing _Kokkidio_'s internal procedures, 
+with the latter providing info from within parallel sections. 
+Such messages include details on
+
+* Memory allocation sizes, addresses, 
+and the target (CPU/GPU) for `Kokkidio::ViewMap`, 
+
+* Creation of the `ParallelRange` kernel parameter and its values 
+	(start, size -- both only with `KOKKIDIO_DEBUG_OUTPUT_LOOP`),
+* The buffer mechanism 
+	(total buffer sizes and address, the chunk size, 
+	and with `KOKKIDIO_DEBUG_OUTPUT_LOOP` 
+	also each thread's number, 
+	its thread-local buffer size, 
+	and address range),
+	and
+* Notifications when a fallback path is taken, e.g., 
+	when a kernel functor to be run on `host` is not invocable with `ParallelRange`.
+
+The printed values and relative position in the program flow may help 
+with quick print-debugging tasks and enable more targeted support.
+
 == Notes
 
 === Building Kokkos for _Kokkidio_
