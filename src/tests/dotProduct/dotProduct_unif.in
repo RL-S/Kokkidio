@@ -1,7 +1,7 @@
 #include "dotProduct.hpp"
 #include <Kokkidio.hpp>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 #ifndef KOKKIDIO_DOTPRODUCT_TARGET
 #define KOKKIDIO_DOTPRODUCT_TARGET Target::device

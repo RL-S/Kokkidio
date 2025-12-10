@@ -3,7 +3,7 @@
 #include "unifyBackends.hpp"
 #include <Kokkidio.hpp>
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 
 namespace Kokkidio::gpu

@@ -48,6 +48,7 @@ troubleshooting/*
 
 # hidden files
 .*
+!.github/
 !.gitignore
 
 # documentation
@@ -80,3 +81,6 @@ doc/*
 
 # compile commands symlink for clangd
 ./compile_commands.json
+
+spack.lock
+Testing/

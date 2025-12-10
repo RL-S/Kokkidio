@@ -3,7 +3,7 @@
 #include "redux.hpp"
 #include "redux_cudahip_generic.hpp"
 
-#include "magic_enum.hpp"
+#include <magic_enum.hpp>
 
 
 namespace Kokkidio::gpu
