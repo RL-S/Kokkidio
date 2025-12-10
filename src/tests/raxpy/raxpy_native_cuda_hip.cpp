@@ -1,4 +1,4 @@
-#include "axpy.hpp"
+#include "raxpy.hpp"
 
 #include "unifyBackends.hpp"
 
@@ -8,11 +8,25 @@ namespace Kokkidio::gpu
 namespace kernel
 {
 
-/* CUDA kernel with axpy logic */
-__global__ void cstyle(scalar* z, scalar a, const scalar* x, const scalar* y, int nRows){
+/* CUDA kernel with raxpy logic */
+__global__ void cstyle(
+	scalar* z, 
+	scalar a, 
+	const scalar* x, 
+	const scalar* y, 
+	int nRows,
+	int nRuns
+){
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	if (idx < nRows){
-		z[idx] = a * x[idx] + y[idx];
+		scalar z_local;
+		raxpy_sum( 
+			z_local, a, 
+			x[idx], 
+			y[idx],
+			nRuns
+		);
+		z[idx] = z_local;
 	}
 }
 
@@ -22,7 +36,7 @@ using K = Kernel;
 constexpr Target dev { Target::device };
 
 template<>
-void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
+void raxpy<dev, K::cstyle>( KOKKIDIO_RAXPY_ARGS ){
 
 	const int nRows = z.rows();
 
@@ -32,19 +46,17 @@ void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
 	gpuAllocAndCopy(y_d, y);
 	gpuAlloc(z_d, z);
 
-	/* Run calculation multiple times */
-	for (volatile int run = 0; run < nRuns; ++run){
-		/* Define block and grid dimensions */
-		dim3 dimGrid((nRows + 1023) / 1024, 1, 1);
-		dim3 dimBlock(1024, 1, 1);
+	/* Define block and grid dimensions */
+	dim3 dimGrid((nRows + 1023) / 1024, 1, 1);
+	dim3 dimBlock(1024, 1, 1);
 
-		/* Call the kernel function */
-		chLaunchKernel(
-			kernel::cstyle,
-			dimGrid, dimBlock, 0, 0,
-			z_d, a, x_d, y_d, nRows
-		);
-	}
+	/* Call the kernel function */
+	chLaunchKernel(
+		kernel::cstyle,
+		dimGrid, dimBlock, 0, 0,
+		z_d, a, x_d, y_d, 
+		nRows, nRuns
+	);
 
 	/* Copy vector of dot products to host */
 	gpuMemcpyDeviceToHost(z_d, z);

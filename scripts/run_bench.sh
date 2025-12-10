@@ -56,7 +56,7 @@ while [ : ]; do
 			exit
 			;;
 		-x | --example)
-			if ! [[ "$2" =~ axpy|dotProduct|norm|friction ]]; then
+			if ! [[ "$2" =~ axpy|dotProduct|norm|friction|rpow|raxpy ]]; then
 				echo "Unknown example: \"$2\". Exiting..."
 				print_help
 				exit
@@ -128,6 +128,22 @@ else
 	exit
 fi
 
+if [[ "$example" == "rpow" ]]; then
+	if [[ "$target" == "gpu" ]]; then
+		iter=500
+	elif [[ "$target" == "cpu" ]]; then
+		iter=5
+	fi
+fi
+if [[ "$example" == "raxpy" ]]; then
+	if [[ "$target" == "gpu" ]]; then
+		iter=100000
+	elif [[ "$target" == "cpu" ]]; then
+		iter=100000
+	fi
+fi
+
+
 
 export OMP_NUM_THREADS=$cpusPerTask
 # Kokkos likes this better:
@@ -135,9 +151,15 @@ export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
 
-rows=4
-if [[ "$example" != "dotProduct" ]]; then
-	rows=(1)
+rows=1
+if [[ $example =~ dotProduct|norm ]]; then
+	rows=4
+fi
+if [[ "$example" == "raxpy" ]] && [[ "$target" == cpu ]]; then
+	# the actual number of elements for this workload is
+	# rows * cols,
+	# but the rows parameter is used as the chunk size on cpu
+	rows=2048
 fi
 
 cols=(
@@ -200,8 +222,11 @@ fi
 logfile="$outfile.log"
 outfile+=".csv"
 echo "Outfile: $outfile"
-		
+
+
+
 optkeys=()
+
 
 if [[ "$example" == "axpy" ]]; then
 	if [[ "$target" != "cpu" ]]; then
@@ -224,7 +249,6 @@ if [[ "$example" == "axpy" ]]; then
 		)
 	fi
 fi
-
 
 
 
@@ -255,12 +279,7 @@ if [[ "$example" == "dotProduct" ]]; then
 			"CPU--unified-kokkidio_range"
 		)
 	fi
-else
-	rows=(1)
 fi
-
-
-
 
 
 
@@ -284,6 +303,7 @@ if [[ "$example" == "norm" ]]; then
 		)
 	fi
 fi
+
 
 
 if [[ "$example" == "friction" ]]; then
@@ -313,6 +333,66 @@ if [[ "$example" == "friction" ]]; then
 			"CPU--unified-kokkidio_index_stackbuf"
 			"CPU--unified-kokkidio_range_fullbuf"
 			"CPU--unified-kokkidio_range_chunkbuf"
+		)
+	fi
+fi
+
+
+
+if [[ "$example" == "rpow" ]]; then
+	if [[ "$target" != "cpu" ]]; then
+		optkeys+=(
+			"GPU--native-cstyle"
+			"GPU--unified-cstyle"
+			"GPU--unified-kokkidio_index"
+			"GPU--unified-kokkidio_range"
+		)
+	fi
+	if [[ "$target" != "gpu" ]]; then
+		optkeys+=(
+			"CPU--native-warmup"
+			"CPU--native-cstyle_seq"
+			"CPU--native-cstyle_par"
+			"CPU--native-eigen_seq"
+			"CPU--native-eigen_par"
+			"CPU--unified-cstyle"
+			"CPU--unified-kokkidio_index"
+			"CPU--unified-kokkidio_range"
+		)
+	fi
+fi
+
+
+
+if [[ "$example" == "raxpy" ]]; then
+	if [[ "$target" != "cpu" ]]; then
+		optkeys+=(
+			"GPU--native-cstyle"
+			"GPU--unified-cstyle"
+			"GPU--unified-kokkos"
+			"GPU--unified-kokkos_writeonce"
+			"GPU--unified-kokkidio_index"
+			"GPU--unified-kokkidio_range"
+			"GPU--unified-kokkidio_range_writebuf"
+			"GPU--unified-kokkidio_range_nobuf"
+			"GPU--unified-kokkidio_range_accbuf"
+		)
+	fi
+	if [[ "$target" != "gpu" ]]; then
+		optkeys+=(
+			"CPU--native-cstyle_seq"
+			"CPU--native-cstyle_par"
+			"CPU--native-eigen_seq_nochunks"
+			"CPU--native-eigen_seq"
+			"CPU--native-eigen_par_buf"
+			"CPU--native-eigen_par"
+			"CPU--unified-cstyle"
+			"CPU--unified-kokkos"
+			"CPU--unified-kokkidio_index"
+			"CPU--unified-kokkidio_range"
+			"CPU--unified-kokkidio_range_writebuf"
+			"CPU--unified-kokkidio_range_nobuf"
+			"CPU--unified-kokkidio_range_accbuf"
 		)
 	fi
 fi
@@ -362,8 +442,8 @@ writeColTitles "$outfile" "iter${sep}cols"
 for col in "${cols[@]}"
 do
 	echo "$iter$sep$col" >> "$outfile"
-	echo "cols: ${col}, iterations: ${iter}"
-	if [[ "$example" == "dotProduct" ]] || [[ "$example" == "norm" ]]; then
+	echo "rows: ${rows}, cols: ${col}, iterations: ${iter}"
+	if [[ "$example" =~ dotProduct|norm|raxpy ]]; then
 		output="$("$bin" -s $rows $col -r $iter -t $target)"
 	else
 		output="$("$bin" -s $col -r $iter -t $target)"

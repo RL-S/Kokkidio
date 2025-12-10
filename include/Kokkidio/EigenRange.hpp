@@ -2,7 +2,7 @@
 #define KOKKIDIO_EIGENRANGE_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 #include "Kokkidio/EigenRange_func.hpp"
@@ -39,6 +39,15 @@ public:
 	KOKKOS_FUNCTION
 	auto get() -> MemberType& {
 		return m_rng;
+	}
+
+	KOKKOS_FUNCTION
+	constexpr auto size() const -> std::conditional_t<isHost, Index, int> {
+		if constexpr (isHost){
+			return m_rng.size();
+		} else {
+			return 1;
+		}
 	}
 
 	KOKKOS_FUNCTION

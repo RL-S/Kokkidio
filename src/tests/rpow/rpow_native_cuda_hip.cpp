@@ -1,4 +1,4 @@
-#include "axpy.hpp"
+#include "rpow.hpp"
 
 #include "unifyBackends.hpp"
 
@@ -8,11 +8,11 @@ namespace Kokkidio::gpu
 namespace kernel
 {
 
-/* CUDA kernel with axpy logic */
-__global__ void cstyle(scalar* z, scalar a, const scalar* x, const scalar* y, int nRows){
+/* CUDA kernel with rpow logic */
+__global__ void cstyle(scalar* optr, const scalar* iptr, int nRows){
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	if (idx < nRows){
-		z[idx] = a * x[idx] + y[idx];
+		optr[idx] = rpow_sum( iptr[idx] );
 	}
 }
 
@@ -22,15 +22,14 @@ using K = Kernel;
 constexpr Target dev { Target::device };
 
 template<>
-void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
+void rpow<dev, K::cstyle>( KOKKIDIO_RPOW_ARGS ){
 
-	const int nRows = z.rows();
+	const int nRows = out.rows();
 
 	/* Allocate memory on device and copy data */
-	scalar *x_d, *y_d, *z_d;
-	gpuAllocAndCopy(x_d, x);
-	gpuAllocAndCopy(y_d, y);
-	gpuAlloc(z_d, z);
+	scalar *out_d, *in_d;
+	gpuAlloc(out_d, out);
+	gpuAllocAndCopy(in_d, in);
 
 	/* Run calculation multiple times */
 	for (volatile int run = 0; run < nRuns; ++run){
@@ -42,18 +41,17 @@ void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
 		chLaunchKernel(
 			kernel::cstyle,
 			dimGrid, dimBlock, 0, 0,
-			z_d, a, x_d, y_d, nRows
+			out_d, in_d, nRows
 		);
 	}
 
 	/* Copy vector of dot products to host */
-	gpuMemcpyDeviceToHost(z_d, z);
+	gpuMemcpyDeviceToHost(out_d, out);
 
 
 	/* Deallocate device memory */
-	gpuFree(x_d);
-	gpuFree(y_d);
-	gpuFree(z_d);
+	gpuFree(out_d);
+	gpuFree(in_d);
 }
 
 } // namespace Kokkidio::gpu

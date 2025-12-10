@@ -1,51 +1,54 @@
 #include "runAndTime.hpp"
 #include "parseOpts.hpp"
 
-#include "axpy.hpp"
+#include "rpow.hpp"
 
 #include "testMacros.hpp"
 
 namespace Kokkidio
 {
 
-KOKKIDIO_FUNC_WRAPPER(axpy_unif, unif::axpy)
-KOKKIDIO_FUNC_WRAPPER(axpy_cpu ,  cpu::axpy)
-KOKKIDIO_FUNC_WRAPPER(axpy_gpu ,  gpu::axpy)
+KOKKIDIO_FUNC_WRAPPER(rpow_unif, unif::rpow)
+KOKKIDIO_FUNC_WRAPPER(rpow_cpu ,  cpu::rpow)
+KOKKIDIO_FUNC_WRAPPER(rpow_gpu ,  gpu::rpow)
 
-constexpr auto axpyStr { std::is_same_v<scalar, float> ? "saxpy" : "daxpy" };
-
-void run_axpy(const BenchOpts b){
+void run_rpow(const BenchOpts b){
 	if ( !b.gnuplot ){
-		std::cout << "Running " << axpyStr << " benchmark...\n";
+		std::cout << "Running rational power (high OI) benchmark...\n";
 	}
 
-	scalar a, z_correct;
+	scalar out_correct, in_all;
 
-	ArrayXs x ( std::max(b.nRows, b.nCols) ), y, z;
-	y.resizeLike(x);
-	z.resizeLike(x);
+	ArrayXs in ( std::max(b.nRows, b.nCols) ), out;
+	out.resizeLike(in);
 
-	Array3s randVals;
+	Array1s randVals;
 	randVals.setRandom();
-	a = randVals[0];
-	x = randVals[1];
-	y = randVals[2];
+	in_all = randVals[0];
+	in = in_all;
 
-	z_correct = a * x[0] + y[0];
+	out_correct = [&](){
+		scalar sum {0};
+		for (Index i{0}; i<rpow_ctrl::nIter; ++i){
+			auto sign = static_cast<scalar>(-2 * (i % 2) + 1);
+			sum += sign * pow( in_all, static_cast<scalar>(i) );
+		}
+		return sum;
+	}();
 
 	auto pass = [&](){
 		/* mapping to the results so that we can check that they're all equal */
-		bool same { z.isApproxToConstant(z_correct, epsilon) };
+		bool same { out.isApproxToConstant(out_correct, epsilon) };
 		if ( !same ){
 			std::cerr.precision(16);
-			std::cerr << "z:\n";
-			if (z.size() < 30){
-				std::cerr << z;
+			std::cerr << "out:\n";
+			if (out.size() < 30){
+				std::cerr << out;
 			} else {
 				std::cerr
-					<< z.head(3)
+					<< out.head(3)
 					<< "\n...\n"
-					<< z.tail(3)
+					<< out.tail(3)
 				;
 			}
 		}
@@ -75,15 +78,15 @@ void run_axpy(const BenchOpts b){
 		if (b.group != "unified"){
 			setNat();
 			using gK = gpu::Kernel;
-			runAndTime<axpy_gpu, T::device, gK
+			runAndTime<rpow_gpu, T::device, gK
 				, gK::cstyle // first one is for warmup
 				, gK::cstyle
-			>( opts, pass, z, a, x, y, b.nRuns );
+			>( opts, pass, out, in, b.nRuns );
 		}
 
 		if (b.group != "native"){
 			setUni();
-			runAndTime<axpy_unif, T::device, uK
+			runAndTime<rpow_unif, T::device, uK
 				, uK::cstyle // warmup is skipped
 				, uK::cstyle
 				KRUN_IF_ALL(
@@ -91,28 +94,28 @@ void run_axpy(const BenchOpts b){
 				)
 				, uK::kokkidio_index
 				, uK::kokkidio_range
-			>( opts, pass, z, a, x, y, b.nRuns );
+			>( opts, pass, out, in, b.nRuns );
 		}
 	}
 	#endif
 
 	/* Run on CPU */
-	if ( b.target != "gpu" && (z.size() <= 1000 * 1000 * 1000 || b.nRuns <= 500) ){
+	if ( b.target != "gpu" && (out.size() <= 1000 * 1000 * 1000 || b.nRuns <= 500) ){
 		if (b.group != "unified"){
 			setNat();
 			using cK = cpu::Kernel;
-			runAndTime<axpy_cpu, T::host, cK
-				, cK::eigen_par // first one is for warmup
+			runAndTime<rpow_cpu, T::host, cK
+				, cK::cstyle_par // first one is for warmup
 				, cK::cstyle_seq
 				, cK::cstyle_par
 				, cK::eigen_seq
 				, cK::eigen_par
-			>( opts, pass, z, a, x, y, b.nRuns );
+			>( opts, pass, out, in, b.nRuns );
 		}
 
 		if (b.group != "native"){
 			setUni();
-			runAndTime<axpy_unif, T::host, uK
+			runAndTime<rpow_unif, T::host, uK
 				, uK::cstyle // warmup is skipped
 				, uK::cstyle
 				KRUN_IF_ALL(
@@ -120,14 +123,14 @@ void run_axpy(const BenchOpts b){
 				)
 				, uK::kokkidio_index
 				, uK::kokkidio_range
-			>( opts, pass, z, a, x, y, b.nRuns );
+			>( opts, pass, out, in, b.nRuns );
 		}
 	}
 
 	if (!b.gnuplot){
 		std::cout
-			<< axpyStr << " result:\n" << z_correct << '\n'
-			<< axpyStr << ": Finished runs.\n\n";
+			<< "rpow result:\n" << out_correct << '\n'
+			<< "rpow: Finished runs.\n\n";
 	}
 }
 
@@ -149,7 +152,7 @@ int main(int argc, char** argv){
 	){
 		return 1;
 	}
-	K::run_axpy(b);
+	K::run_rpow(b);
 
 	return 0;
 }

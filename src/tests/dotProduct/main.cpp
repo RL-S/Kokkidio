@@ -53,13 +53,17 @@ void runDot(const BenchOpts b){
 
 	RunOpts opts;
 	opts.useGnuplot = b.gnuplot;
+	opts.impl = b.impl;
 	auto setNat = [&](){
 		opts.groupComment = "native";
-		opts.skipWarmup = false;
+		opts.skipWarmup = b.skipWarmup;
 	};
 	auto setUni = [&](){
 		opts.groupComment = "unified";
 		opts.skipWarmup = true;
+		if (b.group != "all" || b.impl != "all"){
+			opts.skipWarmup = b.skipWarmup;
+		}
 	};
 
 	using T = Target;
@@ -67,73 +71,81 @@ void runDot(const BenchOpts b){
 	/* Run on GPU */
 	#ifndef KOKKIDIO_CPU_ONLY
 	if ( b.target != "cpu" ){
-		#ifndef KOKKIDIO_USE_SYCL
-		setNat();
-		using gK = gpu::Kernel;
-		runAndTime<dot_gpu, T::device, gK
-			, gK::cstyle_blockbuf // first one is for warmup
-			, gK::cstyle_blockbuf
-		>( opts, pass, m1, m2, b.nRuns );
-		#else
-		/* native cstyle dot product is implemented, but incredibly slow:
-		 * each iteration with just 4x10000 takes about a hundredth of a second,
-		 * so the test will never finish */
-		runAndTime<dot_unif, T::device, uK
-			, uK::cstyle // warmup only
-		>( opts, pass, m1, m2, b.nRuns );
-		#endif
+		if (b.group != "unified"){
+			#ifndef KOKKIDIO_USE_SYCL
+			setNat();
+			using gK = gpu::Kernel;
+			runAndTime<dot_gpu, T::device, gK
+				, gK::cstyle_blockbuf // first one is for warmup
+				, gK::cstyle_blockbuf
+			>( opts, pass, m1, m2, b.nRuns );
+			#else
+			/* native cstyle dot product is implemented, but incredibly slow:
+			* each iteration with just 4x10000 takes about a hundredth of a second,
+			* so the test will never finish */
+			runAndTime<dot_unif, T::device, uK
+				, uK::cstyle // warmup only
+			>( opts, pass, m1, m2, b.nRuns );
+			#endif
+		}
 
-		setUni();
-		runAndTime<dot_unif, T::device, uK
-			// , uK::kokkidio_range // warmup is skipped
-			, uK::cstyle
-			KRUN_IF_ALL(
-			, uK::cstyle_nobuf
-			)
-			, uK::kokkidio_index
-			, uK::kokkidio_range
-			KRUN_IF_ALL(
-			, uK::kokkidio_range_chunks
-			, uK::kokkidio_range_trace
-			, uK::kokkidio_range_for_each
-			, uK::kokkidio_index_merged
-			, uK::kokkidio_range_for_each_merged
-			)
-		>( opts, pass, m1, m2, b.nRuns );
+		if (b.group != "native"){
+			setUni();
+			runAndTime<dot_unif, T::device, uK
+				, uK::kokkidio_range // warmup is skipped
+				, uK::cstyle
+				KRUN_IF_ALL(
+				, uK::cstyle_nobuf
+				)
+				, uK::kokkidio_index
+				, uK::kokkidio_range
+				KRUN_IF_ALL(
+				, uK::kokkidio_range_chunks
+				, uK::kokkidio_range_trace
+				, uK::kokkidio_range_for_each
+				, uK::kokkidio_index_merged
+				, uK::kokkidio_range_for_each_merged
+				)
+			>( opts, pass, m1, m2, b.nRuns );
+		}
 	}
 	#endif
 
 	/* Run on CPU */
 	if ( b.target != "gpu" && b.nCols * b.nRuns <= 25e8 ){
-		setNat();
-		using cK = cpu::Kernel;
-		runAndTime<dot_cpu, T::host, cK
-			, cK::eigen_par_arrProd // first one is for warmup
-			, cK::cstyle_seq
-			, cK::cstyle_par
-			, cK::eigen_seq_colwise
-			, cK::eigen_seq_arrProd
-			, cK::eigen_par_colwise
-			, cK::eigen_par_arrProd
-		>( opts, pass, m1, m2, b.nRuns );
+		if (b.group != "unified"){
+			setNat();
+			using cK = cpu::Kernel;
+			runAndTime<dot_cpu, T::host, cK
+				, cK::eigen_par_arrProd // first one is for warmup
+				, cK::cstyle_seq
+				, cK::cstyle_par
+				, cK::eigen_seq_colwise
+				, cK::eigen_seq_arrProd
+				, cK::eigen_par_colwise
+				, cK::eigen_par_arrProd
+			>( opts, pass, m1, m2, b.nRuns );
+		}
 
-		setUni();
-		runAndTime<dot_unif, T::host, uK
-			// , uK::kokkidio_range // warmup is skipped
-			, uK::cstyle
-			KRUN_IF_ALL(
-			, uK::cstyle_nobuf
-			)
-			, uK::kokkidio_index
-			, uK::kokkidio_range
-			KRUN_IF_ALL(
-			, uK::kokkidio_range_chunks
-			, uK::kokkidio_range_trace
-			, uK::kokkidio_range_for_each
-			, uK::kokkidio_index_merged
-			, uK::kokkidio_range_for_each_merged
-			)
-		>( opts, pass, m1, m2, b.nRuns );
+		if (b.group != "native"){
+			setUni();
+			runAndTime<dot_unif, T::host, uK
+				, uK::kokkidio_range // warmup is skipped
+				, uK::cstyle
+				KRUN_IF_ALL(
+				, uK::cstyle_nobuf
+				)
+				, uK::kokkidio_index
+				, uK::kokkidio_range
+				KRUN_IF_ALL(
+				, uK::kokkidio_range_chunks
+				, uK::kokkidio_range_trace
+				, uK::kokkidio_range_for_each
+				, uK::kokkidio_index_merged
+				, uK::kokkidio_range_for_each_merged
+				)
+			>( opts, pass, m1, m2, b.nRuns );
+		}
 	}
 
 	if (!b.gnuplot){
@@ -149,11 +161,19 @@ int main(int argc, char** argv){
 
 	Kokkos::ScopeGuard guard(argc, argv);
 
-	Kokkidio::BenchOpts b;
+	namespace K = Kokkidio;
+	K::BenchOpts b;
 	if ( auto exitCode = parseOpts(b, argc, argv) ){
 		exit( exitCode.value() );
 	}
-	Kokkidio::runDot(b);
+	if ( !K::checkImpl<
+		K::unif::Kernel, 
+		K::gpu::Kernel, 
+		K::cpu::Kernel>(b) 
+	){
+		return 1;
+	}
+	K::runDot(b);
 
 	return 0;
 }

@@ -86,8 +86,12 @@ scalar norm<host, K::eigen_par>(const MatrixXs& mat, int nRuns){
 		KOKKIDIO_OMP_PRAGMA(parallel)
 		{
 			auto [colBeg, nCols] = ompSegment(mat.cols()).values;
-			scalar result_thread =
-				mat.middleCols(colBeg, nCols).colwise().norm().maxCoeff();
+
+			scalar result_thread {smin};
+			if (nCols > 0){
+				result_thread = mat.middleCols(colBeg, nCols)
+					.colwise().norm().maxCoeff();
+			}
 
 			KOKKIDIO_OMP_PRAGMA(for reduction (max:result))
 			for (int i=0; i<omp_get_num_threads(); ++i){

@@ -2,7 +2,7 @@
 #define KOKKIDIO_PARALLEL_REDUCE_HPP
 
 #ifndef KOKKIDIO_PUBLIC_HEADER
-#error "Do not include this file directly. Include Kokkidio/Core.hpp instead."
+#error "Do not include this file directly. Include Kokkidio/Kokkidio.hpp instead."
 #endif
 
 #include "Kokkidio/ParallelRange.hpp"
@@ -171,8 +171,14 @@ void parallel_reduce_chunks(const Policy& pol, Func&& func, const Reducer& reduc
 		detail::reduce_host(
 			pol,
 			[&](ParallelRange<Target::host> rng, Scalar& var){
-				for (Index i=0; i<rng.nChunks(); ++i){
-					func( rng.make_chunk(i), var );
+				// for (Index i=0; i<rng.nChunks(); ++i){
+				// 	func( rng.make_chunk(i), var );
+				// }
+				Index chunkStart {rng.get().start()}, chunkSize;
+				while ( chunkStart < rng.get().end() ){
+					chunkSize = rng.chunkSize(chunkStart);
+					func( rng.make_chunk_s(chunkStart, chunkSize), var );
+					chunkStart += chunkSize;
 				}
 			},
 			reducer
