@@ -1609,6 +1609,10 @@ but is in fact the Greek word for _granule_, so not far off _Kokkos_ itself.
 The logo is a stretched/sheared map of a recolouration of the https://kokkos.org/img/kokkos-logo.png[Kokkos logo],
 with the eigenvectors of that mapping drawn as arrows.
 
+=== Citing _Kokkidio_
+
+To cite _Kokkidio_, please use the _IEEE_ article: https://doi.org/10.1109/ACCESS.2025.3635265[10.1109/ACCESS.2025.3635265].
+
 == Licence
 
 _Kokkidio_ is maintained by the
