@@ -41,7 +41,11 @@ private:
 public:
 	using ViewType   = typename ViewTypeStruct::Type;
 	using Scalar     = typename ViewTypeStruct::Scalar;
-	using HostMirror = typename ViewType::HostMirror;
+	#if !defined(KOKKOS_VERSION_MAJOR) || KOKKOS_VERSION_MAJOR < 5
+		using HostMirror = typename ViewType::HostMirror;
+	#else
+		using HostMirror = typename ViewType::host_mirror_type;
+	#endif
 	using MapType    = Eigen::Map<EigenType_host>;
 
 	static_assert( is_contiguous<EigenType_target>() );
