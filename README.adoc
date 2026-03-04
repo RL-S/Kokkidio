@@ -1615,10 +1615,19 @@ To cite _Kokkidio_, please use the _IEEE_ article: https://doi.org/10.1109/ACCES
 
 == Licence
 
-_Kokkidio_ is maintained by the
+_Kokkidio_ is currently being maintained by the
+// Chair of Water Resources Management and Modelling of Hydrosystems of the
+// Technische Universität Berlin,
+// or *wahyd* for short ({wahyd}[Link]).
+Chair of Environmental Fluid Dynamics and Modeling (EFDM)
+of the
+Technische Universität Dresden 
+(https://tu-dresden.de/bu/bauingenieurwesen/iwd/efdm[Link]).
+Until 2025, it was maintained by the
 Chair of Water Resources Management and Modelling of Hydrosystems of the
-Technische Universität Berlin,
-or *wahyd* for short ({wahyd}[Link]).
+Technische Universität Berlin 
+({wahyd}[Link]).
+
 It is distributed under a {gplv3} (link:./LICENCE[Licence text]).
 Licence types for the libraries used in _Kokkidio_
 are listed in the link:./LICENCE.README[LICENCE.README] file.
