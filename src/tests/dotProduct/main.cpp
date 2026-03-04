@@ -18,7 +18,8 @@ void runDot(const BenchOpts b){
 		std::cout << "Running dot product benchmark...\n";
 	}
 	#ifdef TEST_INITIALIZATION
-	/* Test whether everything is okay */
+	/* When TEST_INITIALIZATION is defined, 
+	 * the output of the computation is deterministic rather than random. */
 	MatrixXs m1 (b.nRows, b.nCols), m2 (b.nRows, b.nCols);
 	m1.array() = 1;
 	m2 = m1;

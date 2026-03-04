@@ -12,7 +12,8 @@ message(STATUS "KOKKIDIO_RUN_ALL_TESTS=${KOKKIDIO_RUN_ALL_TESTS}")
 
 macro(set_warnings TARGET_NAME)
 	target_compile_options( ${TARGET_NAME} PRIVATE
-	-Wall -Wextra -Wno-deprecated-declarations
+	-Wall -Wextra 
+	-Wno-deprecated-declarations
 	)
 endmacro()
 
