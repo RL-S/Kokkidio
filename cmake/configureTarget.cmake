@@ -68,12 +68,23 @@ macro(kokkidio_configure_target TARGET_NAME)
 
 	if(KOKKIDIO_USE_CUDA OR KOKKIDIO_USE_HIP)
 		# suppresses "attribute __host__ does not apply here".
-		target_compile_options(${TARGET_NAME} ${TARGET_VISIBILITY} $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1835>)
+		target_compile_options(${TARGET_NAME} ${TARGET_VISIBILITY} 
+			$<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=1835>
+		)
 		# target_compile_options( ${TARGET_NAME} PRIVATE "-diag-suppress 1835" )
 	else()
 		# nvcc passes the wrong style of line directive to gcc,
 		# which creates a hundreds of warnings when compiled with -pedantic.
 		target_compile_options( ${TARGET_NAME} ${TARGET_VISIBILITY} -pedantic)
+	endif()
+
+	# workaround for https://github.com/ROCm/ROCm/issues/5826:
+	# error: illegal instruction detected: Invalid dpp_ctrl value: wavefront shifts are not supported on GFX10+
+	# occurs only on optimisation level -O0.
+	if(KOKKIDIO_USE_HIP)
+		target_compile_options(${TARGET_NAME} ${TARGET_VISIBILITY} 
+			$<$<CONFIG:Debug>:-Og;-g>
+		)
 	endif()
 	
 	if(DEFINED OMP_RPATH)
