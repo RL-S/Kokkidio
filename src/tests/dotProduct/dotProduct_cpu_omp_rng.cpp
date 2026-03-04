@@ -5,6 +5,7 @@
 #endif
 
 #include "dotProduct.hpp"
+#include "doNotOptimise.hpp"
 #include <Kokkidio.hpp>
 
 namespace Kokkidio::cpu

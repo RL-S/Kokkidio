@@ -1,4 +1,5 @@
 #include "norm.hpp"
+#include "doNotOptimise.hpp"
 #include <cassert>
 
 namespace Kokkidio::cpu
@@ -20,7 +21,7 @@ scalar norm<host, K::cstyle_seq>(const MatrixXs& mat, int nRuns){
 
 	const scalar* mat_ptr { mat.data() };
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		result = smin;
 		for (int j = 0; j < nCols; ++j){
 			scalar norm {0};
@@ -30,6 +31,7 @@ scalar norm<host, K::cstyle_seq>(const MatrixXs& mat, int nRuns){
 			}
 			result = std::max( result, detail::sqrt(norm) );
 		}
+		doNotOptimise(result);
 	}
 	return result;
 }
@@ -38,8 +40,9 @@ template<>
 scalar norm<host, K::eigen_seq>(const MatrixXs& mat, int nRuns){
 	scalar result {smin};
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		result = mat.colwise().norm().maxCoeff();
+		doNotOptimise(result);
 	}
 	return result;
 }
@@ -54,7 +57,7 @@ scalar norm<host, K::cstyle_par>(const MatrixXs& mat, int nRuns){
 
 	const scalar* mat_ptr { mat.data() };
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		result = smin;
 		KOKKIDIO_OMP_PRAGMA(parallel)
 		{
@@ -73,6 +76,7 @@ scalar norm<host, K::cstyle_par>(const MatrixXs& mat, int nRuns){
 				result = std::max( result, result_thread );
 			}
 		}
+		doNotOptimise(result);
 	}
 	return result;
 }
@@ -81,7 +85,7 @@ template<>
 scalar norm<host, K::eigen_par>(const MatrixXs& mat, int nRuns){
 	scalar result {smin};
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		result = smin;
 		KOKKIDIO_OMP_PRAGMA(parallel)
 		{
@@ -98,6 +102,7 @@ scalar norm<host, K::eigen_par>(const MatrixXs& mat, int nRuns){
 				result = std::max( result, result_thread );
 			}
 		}
+		doNotOptimise(result);
 	}
 	return result;
 }

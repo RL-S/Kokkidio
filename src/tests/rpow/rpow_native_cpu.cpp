@@ -9,7 +9,7 @@ constexpr Target host { Target::host };
 template<>
 void rpow<host, K::cstyle_seq>(KOKKIDIO_RPOW_ARGS){
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (volatile int run = 0; run < nRuns; run = run + 1){
 		      scalar* optr { out.data() };
 		const scalar* iptr { in.data() };
 
@@ -22,7 +22,7 @@ void rpow<host, K::cstyle_seq>(KOKKIDIO_RPOW_ARGS){
 template<>
 void rpow<host, K::cstyle_par>(KOKKIDIO_RPOW_ARGS){
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (volatile int run = 0; run < nRuns; run = run + 1){
 		      scalar* optr { out.data() };
 		const scalar* iptr { in.data() };
 
@@ -38,7 +38,7 @@ void rpow<host, K::eigen_seq>(KOKKIDIO_RPOW_ARGS){
 
 	Index chunksizeMax { std::min(out.size(), Kokkidio::chunk::defaultSize) };
 	ArrayXs bufm { chunksizeMax };
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (volatile int run = 0; run < nRuns; run = run + 1){
 		Index start {0}, chunksize;
 		while (start < out.size() ){
 			chunksize = std::min( out.size() - start, chunksizeMax);
@@ -64,7 +64,7 @@ void rpow<host, K::eigen_par>(KOKKIDIO_RPOW_ARGS){
 	ArrayXXs bufs ( chunksizeMax, omp_get_max_threads() );
 	// printf("bufs size: %ix%i\n", bufs.rows(), bufs.cols() );
 
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (volatile int run = 0; run < nRuns; run = run + 1){
 		KOKKIDIO_OMP_PRAGMA(parallel)
 		{
 			auto threadseg = ompSegment( out.size() );

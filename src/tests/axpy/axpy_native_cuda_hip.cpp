@@ -1,6 +1,7 @@
 #include "axpy.hpp"
+#include "doNotOptimise.hpp"
 
-#include "unifyBackends.hpp"
+#include <unifyBackends.hpp>
 
 namespace Kokkidio::gpu
 {
@@ -33,7 +34,7 @@ void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
 	gpuAlloc(z_d, z);
 
 	/* Run calculation multiple times */
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		/* Define block and grid dimensions */
 		dim3 dimGrid((nRows + 1023) / 1024, 1, 1);
 		dim3 dimBlock(1024, 1, 1);
@@ -44,6 +45,7 @@ void axpy<dev, K::cstyle>( KOKKIDIO_AXPY_ARGS ){
 			dimGrid, dimBlock, 0, 0,
 			z_d, a, x_d, y_d, nRows
 		);
+		doNotOptimise(z_d);
 	}
 
 	/* Copy vector of dot products to host */

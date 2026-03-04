@@ -29,6 +29,7 @@ scalar dotProduct(
 		for (int iter = 0; iter < nRuns; ++iter){
 			result = 0;
 			parallel_reduce<target>( nCols, func, redux::sum(result) );
+			// doNotOptimise(result);
 		}
 	};
 

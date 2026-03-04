@@ -1,5 +1,6 @@
 #include "rpow.hpp"
 
+#include "doNotOptimise.hpp"
 #include "unifyBackends.hpp"
 
 namespace Kokkidio::gpu
@@ -32,7 +33,7 @@ void rpow<dev, K::cstyle>( KOKKIDIO_RPOW_ARGS ){
 	gpuAllocAndCopy(in_d, in);
 
 	/* Run calculation multiple times */
-	for (volatile int run = 0; run < nRuns; ++run){
+	for (int run = 0; run < nRuns; ++run){
 		/* Define block and grid dimensions */
 		dim3 dimGrid((nRows + 1023) / 1024, 1, 1);
 		dim3 dimBlock(1024, 1, 1);
@@ -43,6 +44,7 @@ void rpow<dev, K::cstyle>( KOKKIDIO_RPOW_ARGS ){
 			dimGrid, dimBlock, 0, 0,
 			out_d, in_d, nRows
 		);
+		doNotOptimise(out_d);
 	}
 
 	/* Copy vector of dot products to host */
